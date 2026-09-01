@@ -1511,52 +1511,57 @@ function budgetStatus(percent){
 }
 
 function addBudget(){
-
-    const category=
-        prompt(
-            "Bütçe kategorisi:\n\nÖrn: Market"
-        );
-
+    const category=prompt("Bütçe kategorisi:\n\nÖrn: Market");
     if(!category) return;
 
-    const amount=
-        parseFloat(
-            prompt("Aylık bütçe tutarı:")
-        );
-
+    const amount=parseFloat(prompt("Aylık bütçe tutarı:"));
     if(!amount || amount<=0){
         alert("Geçerli bir tutar gir.");
         return;
     }
 
-    const month=currentMonth();
+    let envelopeId="";
 
-    const existing=
-        data.budgets.find(
-            x=>
-                x.category===category &&
-                x.month===month
+    if(data.envelopes && data.envelopes.length){
+        const list=data.envelopes
+            .map((e,i)=>(i+1)+". "+e.name)
+            .join("\n");
+
+        const choice=prompt(
+            "Bu bütçeyi hangi zarfa bağlayalım?\n\n"+
+            list+
+            "\n\n0 = Zarf bağlama"
         );
 
-    if(existing){
+        const n=parseInt(choice);
 
-        existing.amount=amount;
-
-    }else{
-
-        data.budgets.push({
-
-            id:Date.now(),
-
-            category:category,
-
-            amount:amount,
-
-            month:month
-
-        });
-
+        if(n>0 && data.envelopes[n-1]){
+            envelopeId=data.envelopes[n-1].id;
+        }
     }
+
+    const month=currentMonth();
+
+    const existing=data.budgets.find(
+        x=>x.category===category && x.month===month
+    );
+
+    if(existing){
+        existing.amount=amount;
+        existing.envelopeId=envelopeId;
+    }else{
+        data.budgets.push({
+            id:Date.now(),
+            category:category,
+            amount:amount,
+            month:month,
+            envelopeId:envelopeId
+        });
+    }
+
+    save();
+    renderBudgets();
+}
 
     save();
 
