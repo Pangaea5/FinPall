@@ -1253,49 +1253,181 @@ closeModals();
 
 function addTransaction(){
 
-const type=
-document.getElementById(
-"transactionType"
-).value;
+    const type=
+        document.getElementById(
+            "transactionType"
+        ).value;
+
+    const amount=
+        parseFloat(
+            document.getElementById(
+                "transactionAmount"
+            ).value
+        );
+
+    const description=
+        document.getElementById(
+            "transactionDescription"
+        ).value.trim();
+
+    const category=
+        document.getElementById(
+            "transactionCategory"
+        ).value;
+
+    const accountId=
+        document.getElementById(
+            "transactionAccount"
+        ).value;
+
+    let envelopeId=
+        document.getElementById(
+            "transactionEnvelope"
+        ).value;
 
 
-const amount=
-parseFloat(
-document.getElementById(
-"transactionAmount"
-).value
-);
+    if(!amount || amount<=0){
+
+        alert("Geçerli bir tutar gir.");
+
+        return;
+
+    }
 
 
-const description=
-document.getElementById(
-"transactionDescription"
-).value.trim();
+    /*
+       Bütçeye bağlı zarfı otomatik bul
+    */
+
+    if(
+        type==="expense" &&
+        !envelopeId &&
+        data.budgets
+    ){
+
+        const budget=
+            data.budgets.find(
+                x=>
+                    x.category===category &&
+                    x.month===currentMonth() &&
+                    x.envelopeId
+            );
 
 
-const category=
-document.getElementById(
-"transactionCategory"
-).value;
+        if(budget){
+
+            envelopeId=
+                String(budget.envelopeId);
+
+        }
+
+    }
 
 
-const accountId=
-document.getElementById(
-"transactionAccount"
-).value;
+    const transaction={
+
+        id:Date.now(),
+
+        type,
+
+        amount,
+
+        description,
+
+        category,
+
+        accountId,
+
+        envelopeId,
+
+        date:new Date().toISOString()
+
+    };
 
 
-const envelopeId=
-document.getElementById(
-"transactionEnvelope"
-).value;
+    data.transactions.push(
+        transaction
+    );
 
 
-if(!amount||amount<=0){
+    /*
+       Hesap bakiyesini güncelle
+    */
 
-alert("Geçerli bir tutar gir.");
+    if(accountId){
 
-return;
+        const account=
+            data.accounts.find(
+                x=>x.id==accountId
+            );
+
+
+        if(account){
+
+            if(
+                accountIsLiability(account)
+            ){
+
+                if(type==="expense")
+                    account.balance+=amount;
+
+                else
+                    account.balance-=amount;
+
+            }else{
+
+                if(type==="income")
+                    account.balance+=amount;
+
+                else
+                    account.balance-=amount;
+
+            }
+
+        }
+
+    }
+
+
+    /*
+       Gideri zarfa işle
+    */
+
+    if(
+        type==="expense" &&
+        envelopeId
+    ){
+
+        const envelope=
+            data.envelopes.find(
+                x=>String(x.id)===String(envelopeId)
+            );
+
+
+        if(envelope){
+
+            envelope.spent=
+                Number(envelope.spent||0)+amount;
+
+        }
+
+    }
+
+
+    save();
+
+
+    document.getElementById(
+        "transactionAmount"
+    ).value="";
+
+
+    document.getElementById(
+        "transactionDescription"
+    ).value="";
+
+
+    closeModals();
 
 }
 
