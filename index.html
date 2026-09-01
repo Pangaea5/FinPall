@@ -2,14 +2,432 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f07818">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="FinPal">
 <title>FinPal</title>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f5f6f7;color:#17231e;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.app{max-width:900px;margin:auto;padding:18px 15px 100px}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.logo{font-size:30px;font-weight:900}.logo span{color:#f07818}
+.date{font-size:12px;color:#777}
+.hero{background:linear-gradient(135deg,#b94708,#f07818);color:#fff;padding:22px;border-radius:24px;margin-bottom:15px}
+.hero small{opacity:.85}.balance{font-size:38px;font-weight:900;margin:7px 0 18px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:#ffffff28;padding:11px;border-radius:13px}.stat b{display:block;margin-top:4px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.card{background:#fff;border:1px solid #e4e8e5;border-radius:18px;padding:17px;box-shadow:0 6px 20px #00000009}
+.card h2{font-size:17px;margin:0 0 13px}
+.row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #eee}
+.row:last-child{border:0}
+button{border:0;border-radius:12px;padding:12px 15px;background:#f07818;color:#fff;font-weight:750;font-size:14px}
+.secondary{background:#18342b}
+.empty{font-size:13px;color:#777;margin:8px 0}
+.list{max-height:260px;overflow:auto}
+.item{padding:10px 0;border-bottom:1px solid #eee}
+.item:last-child{border:0}
+.income{color:#16824f}.expense{color:#c74624}
+.bottom{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #ddd;padding:10px;display:flex;justify-content:center;gap:8px;z-index:5}
+.bottom button{flex:1;max-width:180px}
+.modal{display:none;position:fixed;inset:0;background:#0008;z-index:10;align-items:flex-end}
+.modal.active{display:flex}
+.sheet{background:#fff;width:100%;max-width:600px;margin:auto;border-radius:24px 24px 0 0;padding:20px}
+input,select{width:100%;padding:13px;margin:7px 0 12px;border:1px solid #ddd;border-radius:12px;font-size:16px}
+.actions{display:flex;gap:8px}.actions button{flex:1}
+@media(max-width:600px){.grid{grid-template-columns:1fr}.balance{font-size:34px}}
+</style>
 </head>
+
 <body>
 
-<h1>FinPal</h1>
+<div class="app">
 
-<p>FinPal v2 kuruluyor...</p>
+<header>
+<div class="logo">Fin<span>Pal</span></div>
+<div class="date" id="date"></div>
+</header>
+
+<section class="hero">
+<small>Toplam Bakiye</small>
+<div class="balance" id="balance">₺0,00</div>
+
+<div class="stats">
+<div class="stat"><small>Gelir</small><b id="income">₺0,00</b></div>
+<div class="stat"><small>Gider</small><b id="expense">₺0,00</b></div>
+<div class="stat"><small>Net</small><b id="net">₺0,00</b></div>
+</div>
+</section>
+
+<div class="grid">
+
+<section class="card">
+<h2>📊 Bu Ay</h2>
+<div class="row"><span>Gelir</span><b id="monthIncome">₺0</b></div>
+<div class="row"><span>Gider</span><b id="monthExpense">₺0</b></div>
+<div class="row"><span>Kalan</span><b id="monthNet">₺0</b></div>
+</section>
+
+<section class="card">
+<h2>💳 Hesaplar</h2>
+<div id="accounts" class="list">
+<div class="empty">Henüz hesap yok.</div>
+</div>
+<button onclick="openAccount()">+ Hesap Ekle</button>
+</section>
+
+<section class="card">
+<h2>📦 Zarflar</h2>
+<div id="envelopes" class="list">
+<div class="empty">Henüz zarf yok.</div>
+</div>
+<button onclick="openEnvelope()">+ Zarf Ekle</button>
+</section>
+
+<section class="card">
+<h2>🧾 Son İşlemler</h2>
+<div id="transactions" class="list">
+<div class="empty">Henüz işlem yok.</div>
+</div>
+<button onclick="openTransaction()">+ İşlem Ekle</button>
+</section>
+
+</div>
+</div>
+
+<div class="bottom">
+<button onclick="openTransaction()">＋ İşlem</button>
+<button class="secondary" onclick="openEnvelope()">📦 Zarf</button>
+<button class="secondary" onclick="openAccount()">💳 Hesap</button>
+</div>
+
+<!-- TRANSACTION MODAL -->
+
+<div class="modal" id="transactionModal">
+<div class="sheet">
+
+<h2>Yeni İşlem</h2>
+
+<select id="type">
+<option value="expense">Gider</option>
+<option value="income">Gelir</option>
+</select>
+
+<input id="amount" type="number" inputmode="decimal" placeholder="Tutar">
+
+<input id="description" placeholder="Açıklama">
+
+<select id="category">
+<option>Market</option>
+<option>Faturalar</option>
+<option>Ulaşım</option>
+<option>Yemek</option>
+<option>Eğlence</option>
+<option>Sağlık</option>
+<option>Alışveriş</option>
+<option>Maaş</option>
+<option>Diğer</option>
+</select>
+
+<select id="accountSelect">
+<option value="">Hesap seç</option>
+</select>
+
+<div class="actions">
+<button class="secondary" onclick="closeModals()">İptal</button>
+<button onclick="addTransaction()">Kaydet</button>
+</div>
+
+</div>
+</div>
+
+<!-- ACCOUNT MODAL -->
+
+<div class="modal" id="accountModal">
+<div class="sheet">
+
+<h2>Yeni Hesap</h2>
+
+<input id="accountName" placeholder="Hesap adı">
+
+<select id="accountType">
+<option>Banka</option>
+<option>Nakit</option>
+<option>Kredi Kartı</option>
+<option>Yatırım</option>
+<option>Diğer</option>
+</select>
+
+<input id="accountBalance" type="number" inputmode="decimal" placeholder="Başlangıç bakiyesi">
+
+<div class="actions">
+<button class="secondary" onclick="closeModals()">İptal</button>
+<button onclick="addAccount()">Kaydet</button>
+</div>
+
+</div>
+</div>
+
+<!-- ENVELOPE MODAL -->
+
+<div class="modal" id="envelopeModal">
+<div class="sheet">
+
+<h2>Yeni Zarf</h2>
+
+<input id="envelopeName" placeholder="Zarf adı">
+
+<input id="envelopeBudget" type="number" inputmode="decimal" placeholder="Bütçe">
+
+<div class="actions">
+<button class="secondary" onclick="closeModals()">İptal</button>
+<button onclick="addEnvelope()">Kaydet</button>
+</div>
+
+</div>
+</div>
+
+<script>
+
+const money = n =>
+new Intl.NumberFormat("tr-TR",{
+style:"currency",
+currency:"TRY"
+}).format(n);
+
+let data = JSON.parse(
+localStorage.getItem("finpalData") ||
+'{"accounts":[],"transactions":[],"envelopes":[]}'
+);
+
+function save(){
+localStorage.setItem("finpalData",JSON.stringify(data));
+render();
+}
+
+function render(){
+
+let income = data.transactions
+.filter(x=>x.type==="income")
+.reduce((a,x)=>a+x.amount,0);
+
+let expense = data.transactions
+.filter(x=>x.type==="expense")
+.reduce((a,x)=>a+x.amount,0);
+
+let accountTotal = data.accounts
+.reduce((a,x)=>a+x.balance,0);
+
+document.getElementById("income").innerText=money(income);
+document.getElementById("expense").innerText=money(expense);
+document.getElementById("net").innerText=money(income-expense);
+document.getElementById("balance").innerText=money(accountTotal);
+
+document.getElementById("monthIncome").innerText=money(income);
+document.getElementById("monthExpense").innerText=money(expense);
+document.getElementById("monthNet").innerText=money(income-expense);
+
+renderAccounts();
+renderEnvelopes();
+renderTransactions();
+updateAccountSelect();
+}
+
+function renderAccounts(){
+
+let el=document.getElementById("accounts");
+
+if(!data.accounts.length){
+el.innerHTML='<div class="empty">Henüz hesap yok.</div>';
+return;
+}
+
+el.innerHTML=data.accounts.map(x=>
+`<div class="row">
+<span>${x.name}<br><small>${x.type}</small></span>
+<b>${money(x.balance)}</b>
+</div>`
+).join("");
+}
+
+function renderEnvelopes(){
+
+let el=document.getElementById("envelopes");
+
+if(!data.envelopes.length){
+el.innerHTML='<div class="empty">Henüz zarf yok.</div>';
+return;
+}
+
+el.innerHTML=data.envelopes.map(x=>
+`<div class="row">
+<span>${x.name}</span>
+<b>${money(x.budget)}</b>
+</div>`
+).join("");
+}
+
+function renderTransactions(){
+
+let el=document.getElementById("transactions");
+
+if(!data.transactions.length){
+el.innerHTML='<div class="empty">Henüz işlem yok.</div>';
+return;
+}
+
+el.innerHTML=data.transactions
+.slice()
+.reverse()
+.slice(0,10)
+.map(x=>
+`<div class="item">
+<b>${x.description||x.category}</b>
+<br>
+<small>${x.category}</small>
+<strong class="${x.type}">
+${x.type==="income"?"+":"-"}${money(x.amount)}
+</strong>
+</div>`
+).join("");
+}
+
+function updateAccountSelect(){
+
+let el=document.getElementById("accountSelect");
+
+el.innerHTML='<option value="">Hesap seç</option>';
+
+data.accounts.forEach(x=>{
+el.innerHTML+=
+`<option value="${x.id}">${x.name}</option>`;
+});
+}
+
+function openTransaction(){
+document.getElementById("transactionModal").classList.add("active");
+}
+
+function openAccount(){
+document.getElementById("accountModal").classList.add("active");
+}
+
+function openEnvelope(){
+document.getElementById("envelopeModal").classList.add("active");
+}
+
+function closeModals(){
+document.querySelectorAll(".modal")
+.forEach(x=>x.classList.remove("active"));
+}
+
+function addAccount(){
+
+let name=document.getElementById("accountName").value.trim();
+let type=document.getElementById("accountType").value;
+let balance=parseFloat(document.getElementById("accountBalance").value)||0;
+
+if(!name){
+alert("Hesap adı gir.");
+return;
+}
+
+data.accounts.push({
+id:Date.now(),
+name,
+type,
+balance
+});
+
+document.getElementById("accountName").value="";
+document.getElementById("accountBalance").value="";
+
+save();
+closeModals();
+}
+
+function addEnvelope(){
+
+let name=document.getElementById("envelopeName").value.trim();
+let budget=parseFloat(document.getElementById("envelopeBudget").value)||0;
+
+if(!name){
+alert("Zarf adı gir.");
+return;
+}
+
+data.envelopes.push({
+id:Date.now(),
+name,
+budget,
+spent:0
+});
+
+document.getElementById("envelopeName").value="";
+document.getElementById("envelopeBudget").value="";
+
+save();
+closeModals();
+}
+
+function addTransaction(){
+
+let type=document.getElementById("type").value;
+let amount=parseFloat(document.getElementById("amount").value);
+let description=document.getElementById("description").value;
+let category=document.getElementById("category").value;
+let accountId=document.getElementById("accountSelect").value;
+
+if(!amount||amount<=0){
+alert("Geçerli bir tutar gir.");
+return;
+}
+
+data.transactions.push({
+id:Date.now(),
+type,
+amount,
+description,
+category,
+accountId,
+date:new Date().toISOString()
+});
+
+if(accountId){
+
+let account=data.accounts.find(x=>x.id==accountId);
+
+if(account){
+
+if(type==="income")
+account.balance+=amount;
+else
+account.balance-=amount;
+
+}
+
+}
+
+document.getElementById("amount").value="";
+document.getElementById("description").value="";
+
+save();
+closeModals();
+}
+
+document.getElementById("date").innerText=
+new Date().toLocaleDateString("tr-TR",{
+day:"numeric",
+month:"long",
+year:"numeric"
+});
+
+render();
+
+</script>
 
 </body>
 </html>
