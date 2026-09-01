@@ -540,1174 +540,327 @@ Kaydet
 <script>
 
 const money = n =>
-new Intl.NumberFormat("tr-TR",{
-style:"currency",
-currency:"TRY"
-}).format(Number(n)||0);
+new Intl.NumberFormat("tr-TR", {
+    style: "currency",
+    currency: "TRY"
+}).format(Number(n) || 0);
 
+
+/* =========================
+   VERİ
+========================= */
 
 function loadData(){
 
-try{
+    try{
 
-const saved =
-localStorage.getItem("finpalData");
+        const saved =
+            localStorage.getItem("finpalData");
 
-if(saved){
+        if(saved){
 
-const parsed=JSON.parse(saved);
+            const parsed =
+                JSON.parse(saved);
 
-return {
+            return {
 
-accounts:Array.isArray(parsed.accounts)
-?parsed.accounts:[],
+                accounts:
+                    Array.isArray(parsed.accounts)
+                    ? parsed.accounts
+                    : [],
 
-transactions:Array.isArray(parsed.transactions)
-?parsed.transactions:[],
+                transactions:
+                    Array.isArray(parsed.transactions)
+                    ? parsed.transactions
+                    : [],
 
-envelopes:Array.isArray(parsed.envelopes)
-?parsed.envelopes:[],
+                envelopes:
+                    Array.isArray(parsed.envelopes)
+                    ? parsed.envelopes
+                    : [],
 
-budgets:Array.isArray(parsed.budgets)
-?parsed.budgets:[]
+                budgets:
+                    Array.isArray(parsed.budgets)
+                    ? parsed.budgets
+                    : []
 
-};
+            };
+
+        }
+
+    }catch(error){
+
+        console.error(
+            "FinPal veri okuma hatası:",
+            error
+        );
+
+    }
+
+    return {
+        accounts:[],
+        transactions:[],
+        envelopes:[],
+        budgets:[]
+    };
 
 }
 
-}catch(e){
 
-console.error(e);
-
-}
-
-return {
-accounts:[],
-transactions:[],
-envelopes:[],
-budgets:[]
-};
-
-}
+let data = loadData();
 
 
-let data=loadData();
-
+/* =========================
+   KAYDET
+========================= */
 
 function save(){
 
-localStorage.setItem(
-"finpalData",
-JSON.stringify(data)
-);
+    localStorage.setItem(
+        "finpalData",
+        JSON.stringify(data)
+    );
 
-render();
+    render();
+
+}
+
+
+/* =========================
+   YARDIMCI
+========================= */
+
+function escapeHTML(value){
+
+    return String(value ?? "")
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;")
+        .replace(/'/g,"&#039;");
 
 }
 
 
 function accountIsLiability(account){
 
-return account.type==="credit" ||
-account.type==="debt";
-
-}
-
-
-function calculateAssets(){
-
-return data.accounts
-.filter(x=>!accountIsLiability(x))
-.reduce(
-(sum,x)=>sum+Number(x.balance||0),
-0
-);
-
-}
-
-
-function calculateLiabilities(){
-
-return data.accounts
-.filter(x=>accountIsLiability(x))
-.reduce(
-(sum,x)=>sum+Math.abs(Number(x.balance||0)),
-0
-);
-
-}
-
-
-function render(){
-
-const assets=calculateAssets();
-
-const liabilities=calculateLiabilities();
-
-const netWorth=
-assets-liabilities;
-
-
-const now=new Date();
-
-const month=
-now.getMonth();
-
-const year=
-now.getFullYear();
-
-
-let income=0;
-let expense=0;
-
-
-data.transactions.forEach(x=>{
-
-const d=new Date(x.date);
-
-if(
-d.getMonth()===month &&
-d.getFullYear()===year
-){
-
-if(x.type==="income")
-income+=Number(x.amount||0);
-
-if(x.type==="expense")
-expense+=Number(x.amount||0);
-
-}
-
-});
-
-
-document.getElementById("assets")
-.innerText=money(assets);
-
-document.getElementById("liabilities")
-.innerText=money(liabilities);
-
-document.getElementById("netWorth")
-.innerText=money(netWorth);
-
-document.getElementById("monthIncome")
-.innerText=money(income);
-
-document.getElementById("monthExpense")
-.innerText=money(expense);
-
-document.getElementById("monthSaving")
-.innerText=money(income-expense);
-
-document.getElementById("monthlyNet")
-.innerText=money(income-expense);
-
-
-renderAccounts();
-
-renderEnvelopes();
-
-renderTransactions();
-
-updateSelects();
-
-}
-
-
-function renderAccounts(){
-
-const el=
-document.getElementById("accounts");
-
-
-if(!data.accounts.length){
-
-el.innerHTML=
-'<div class="muted">Henüz hesap yok.</div>';
-
-return;
-
-}
-
-
-el.innerHTML=
-data.accounts.map((x,i)=>{
-
-const liability=
-accountIsLiability(x);
-
-const value=
-Number(x.balance||0);
-
-return`
-
-<div class="account">
-
-<div class="account-top">
-
-<div>
-
-<strong>
-${escapeHTML(x.name||"Hesap")}
-</strong>
-
-<br>
-
-<small>
-${accountTypeName(x.type)}
-</small>
-
-</div>
-
-<strong class="${liability?"negative":"positive"}">
-
-${money(value)}
-
-</strong>
-
-</div>
-
-
-<div class="account-actions">
-
-<button
-class="small"
-onclick="editAccount(${i})">
-
-✏️ Düzenle
-
-</button>
-
-<button
-class="small danger"
-onclick="deleteAccount(${i})">
-
-🗑️ Sil
-
-</button>
-
-</div>
-
-</div>
-
-`;
-
-}).join("");
+    return (
+        account.type === "credit" ||
+        account.type === "debt"
+    );
 
 }
 
 
 function accountTypeName(type){
 
-const names={
-
-asset:"Banka",
-
-cash:"Nakit",
-
-credit:"Kredi Kartı",
-
-investment:"Yatırım",
-
-debt:"Borç",
-
-other:"Diğer"
-
-};
-
-return names[type]||"Diğer";
-
-}
-
-
-function renderEnvelopes(){
-
-const el=
-document.getElementById("envelopes");
-
-
-if(!data.envelopes.length){
-
-el.innerHTML=
-'<div class="muted">Henüz zarf yok.</div>';
-
-return;
-
-}
-
-
-el.innerHTML=
-data.envelopes.map(x=>{
-
-const budget=
-Number(x.budget||0);
-
-const spent=
-Number(x.spent||0);
-
-const remaining=
-budget-spent;
-
-const percent=
-budget>0
-?Math.min(
-Math.max((spent/budget)*100,0),
-100
-)
-:0;
-
-
-return`
-
-<div>
-
-<div class="row">
-
-<span>
-<strong>
-${escapeHTML(x.name||"Zarf")}
-</strong>
-
-<br>
-
-<small>
-Harcanan:
-${money(spent)}
-</small>
-
-</span>
-
-<strong>
-${money(remaining)}
-</strong>
-
-</div>
-
-<div style="
-height:7px;
-background:#eee;
-border-radius:20px;
-overflow:hidden;
-margin:6px 0 10px">
-
-<div style="
-height:100%;
-width:${percent}%;
-background:#f07818;
-border-radius:20px">
-</div>
-
-</div>
-
-</div>
-
-`;
-
-}).join("");
-
-}
-
-
-function renderTransactions(){
-
-const el=
-document.getElementById("transactions");
-
-
-if(!data.transactions.length){
-
-el.innerHTML=
-'<div class="muted">Henüz işlem yok.</div>';
-
-return;
-
-}
-
-
-el.innerHTML=
-data.transactions
-.slice()
-.reverse()
-.slice(0,10)
-.map(x=>`
-
-<div class="row">
-
-<span>
-
-<strong>
-${escapeHTML(
-x.description||
-x.category||
-"İşlem"
-)}
-</strong>
-
-<br>
-
-<small>
-${escapeHTML(x.category||"")}
-</small>
-
-</span>
-
-<strong class="${
-x.type==="income"
-?"positive"
-:"negative"
-}">
-
-${x.type==="income"?"+":"-"}
-${money(x.amount)}
-
-</strong>
-
-</div>
-
-`).join("");
-
-}
-
-
-function updateSelects(){
-
-const accountOptions=
-data.accounts.map(x=>
-`<option value="${x.id}">
-${escapeHTML(x.name)}
-</option>`
-).join("");
-
-
-document.getElementById(
-"transactionAccount"
-).innerHTML=
-'<option value="">Hesap seç</option>'+
-accountOptions;
-
-
-document.getElementById(
-"transferFrom"
-).innerHTML=
-accountOptions;
-
-
-document.getElementById(
-"transferTo"
-).innerHTML=
-accountOptions;
-
-
-const envelopeOptions=
-data.envelopes.map(x=>
-`<option value="${x.id}">
-${escapeHTML(x.name)}
-</option>`
-).join("");
-
-
-document.getElementById(
-"transactionEnvelope"
-).innerHTML=
-'<option value="">Zarf seç</option>'+
-envelopeOptions;
-
-}
-
-
-function addAccount(){
-
-const name=
-document.getElementById(
-"accountName"
-).value.trim();
-
-
-const type=
-document.getElementById(
-"accountType"
-).value;
-
-
-const balance=
-parseFloat(
-document.getElementById(
-"accountBalance"
-).value
-)||0;
-
-
-if(!name){
-
-alert("Hesap adı gir.");
-
-return;
-
-}
-
-
-data.accounts.push({
-
-id:Date.now(),
-
-name,
-
-type,
-
-balance
-
-});
-
-
-save();
-
-document.getElementById(
-"accountName"
-).value="";
-
-document.getElementById(
-"accountBalance"
-).value="";
-
-closeModals();
-
-}
-
-
-function editAccount(index){
-
-const account=data.accounts[index];
-
-
-const name=prompt(
-"Hesap adı:",
-account.name
-);
-
-
-if(name===null)return;
-
-
-const balance=parseFloat(
-prompt(
-"Mevcut bakiye:",
-account.balance
-)
-);
-
-
-if(isNaN(balance)){
-
-alert("Geçerli bakiye gir.");
-
-return;
-
-}
-
-
-account.name=name;
-
-account.balance=balance;
-
-
-save();
-
-}
-
-
-function deleteAccount(index){
-
-if(
-!confirm(
-"Bu hesabı silmek istediğine emin misin?"
-)
-)return;
-
-
-data.accounts.splice(index,1);
-
-save();
-
-}
-
-
-function transferAccount(){
-
-const fromId=
-Number(
-document.getElementById(
-"transferFrom"
-).value
-);
-
-
-const toId=
-Number(
-document.getElementById(
-"transferTo"
-).value
-);
-
-
-const amount=
-parseFloat(
-document.getElementById(
-"accountTransferAmount"
-).value
-);
-
-
-if(fromId===toId){
-
-alert(
-"Kaynak ve hedef hesap aynı olamaz."
-);
-
-return;
-
-}
-
-
-if(!amount||amount<=0){
-
-alert(
-"Geçerli bir tutar gir."
-);
-
-return;
-
-}
-
-
-const from=
-data.accounts.find(
-x=>x.id===fromId
-);
-
-
-const to=
-data.accounts.find(
-x=>x.id===toId
-);
-
-
-if(!from||!to)return;
-
-
-if(accountIsLiability(from)){
-
-from.balance+=amount;
-
-}else{
-
-from.balance-=amount;
-
-}
-
-
-if(accountIsLiability(to)){
-
-to.balance-=amount;
-
-}else{
-
-to.balance+=amount;
-
-}
-
-
-data.transactions.push({
-
-id:Date.now(),
-
-type:"transfer",
-
-amount,
-
-description:
-from.name+
-" → "+
-to.name,
-
-category:"Hesap Transferi",
-
-accountId:from.id,
-
-targetAccountId:to.id,
-
-date:new Date().toISOString()
-
-});
-
-
-save();
-
-document.getElementById(
-"accountTransferAmount"
-).value="";
-
-closeModals();
-
-}
-
-
-function addTransaction(){
-
-    const type=
-        document.getElementById(
-            "transactionType"
-        ).value;
-
-    const amount=
-        parseFloat(
-            document.getElementById(
-                "transactionAmount"
-            ).value
-        );
-
-    const description=
-        document.getElementById(
-            "transactionDescription"
-        ).value.trim();
-
-    const category=
-        document.getElementById(
-            "transactionCategory"
-        ).value;
-
-    const accountId=
-        document.getElementById(
-            "transactionAccount"
-        ).value;
-
-    let envelopeId=
-        document.getElementById(
-            "transactionEnvelope"
-        ).value;
-
-
-    if(!amount || amount<=0){
-
-        alert("Geçerli bir tutar gir.");
-
-        return;
-
-    }
-
-
-    /* Bütçeye bağlı zarfı otomatik bul */
-
-    if(
-        type==="expense" &&
-        !envelopeId &&
-        data.budgets
-    ){
-
-        const budget=
-            data.budgets.find(
-                x=>
-                    x.category===category &&
-                    x.month===currentMonth() &&
-                    x.envelopeId
-            );
-
-        if(budget){
-
-            envelopeId=
-                String(budget.envelopeId);
-
-        }
-
-    }
-
-
-    /* İşlemi oluştur */
-
-    const transaction={
-
-        id:Date.now(),
-
-        type,
-
-        amount,
-
-        description,
-
-        category,
-
-        accountId,
-
-        envelopeId,
-
-        date:new Date().toISOString()
+    const names = {
+
+        asset:"Banka",
+        cash:"Nakit",
+        credit:"Kredi Kartı",
+        investment:"Yatırım",
+        debt:"Borç",
+        other:"Diğer"
 
     };
 
+    return names[type] || "Diğer";
 
-    data.transactions.push(
-        transaction
+}
+
+
+function currentMonth(){
+
+    const d = new Date();
+
+    return (
+        d.getFullYear() +
+        "-" +
+        String(d.getMonth()+1).padStart(2,"0")
     );
 
+}
 
-    /* Hesap bakiyesini güncelle */
 
-    if(accountId){
+/* =========================
+   VARLIK / BORÇ
+========================= */
 
-        const account=
-            data.accounts.find(
-                x=>x.id==accountId
-            );
+function calculateAssets(){
 
-        if(account){
+    return data.accounts
+        .filter(x => !accountIsLiability(x))
+        .reduce(
+            (sum,x) =>
+                sum + Number(x.balance || 0),
+            0
+        );
 
-            if(
-                accountIsLiability(account)
-            ){
+}
 
-                if(type==="expense")
-                    account.balance+=amount;
 
-                else
-                    account.balance-=amount;
+function calculateLiabilities(){
 
-            }else{
+    return data.accounts
+        .filter(x => accountIsLiability(x))
+        .reduce(
+            (sum,x) =>
+                sum + Math.abs(
+                    Number(x.balance || 0)
+                ),
+            0
+        );
 
-                if(type==="income")
-                    account.balance+=amount;
+}
 
-                else
-                    account.balance-=amount;
 
+/* =========================
+   ANA RENDER
+========================= */
+
+function render(){
+
+    const assets =
+        calculateAssets();
+
+    const liabilities =
+        calculateLiabilities();
+
+    const netWorth =
+        assets - liabilities;
+
+
+    const now =
+        new Date();
+
+    const month =
+        now.getMonth();
+
+    const year =
+        now.getFullYear();
+
+
+    let income = 0;
+    let expense = 0;
+
+
+    data.transactions.forEach(x => {
+
+        const d =
+            new Date(x.date);
+
+        if(
+            d.getMonth() === month &&
+            d.getFullYear() === year
+        ){
+
+            if(x.type === "income"){
+                income += Number(x.amount || 0);
+            }
+
+            if(x.type === "expense"){
+                expense += Number(x.amount || 0);
             }
 
         }
 
-    }
+    });
 
 
-    /* Gideri zarfa işle */
+    const netWorthEl =
+        document.getElementById("netWorth");
 
-    if(
-        type==="expense" &&
-        envelopeId
-    ){
+    const assetsEl =
+        document.getElementById("assets");
 
-        const envelope=
-            data.envelopes.find(
-                x=>String(x.id)===String(envelopeId)
-            );
+    const liabilitiesEl =
+        document.getElementById("liabilities");
 
-        if(envelope){
+    const monthIncomeEl =
+        document.getElementById("monthIncome");
 
-            envelope.spent=
-                Number(envelope.spent||0)+amount;
+    const monthExpenseEl =
+        document.getElementById("monthExpense");
 
-        }
+    const monthSavingEl =
+        document.getElementById("monthSaving");
 
-    }
-
-
-    save();
+    const monthlyNetEl =
+        document.getElementById("monthlyNet");
 
 
-    document.getElementById(
-        "transactionAmount"
-    ).value="";
+    if(netWorthEl)
+        netWorthEl.innerText =
+            money(netWorth);
+
+    if(assetsEl)
+        assetsEl.innerText =
+            money(assets);
+
+    if(liabilitiesEl)
+        liabilitiesEl.innerText =
+            money(liabilities);
+
+    if(monthIncomeEl)
+        monthIncomeEl.innerText =
+            money(income);
+
+    if(monthExpenseEl)
+        monthExpenseEl.innerText =
+            money(expense);
+
+    if(monthSavingEl)
+        monthSavingEl.innerText =
+            money(income - expense);
+
+    if(monthlyNetEl)
+        monthlyNetEl.innerText =
+            money(income - expense);
 
 
-    document.getElementById(
-        "transactionDescription"
-    ).value="";
-
-
-    closeModals();
-
-}
-
-
-
-
-
-function openAccount(){
-
-document.getElementById(
-"accountModal"
-).classList.add("active");
-
-}
-
-
-function openAccountTransfer(){
-
-if(data.accounts.length<2){
-
-alert(
-"Transfer için en az iki hesap gerekli."
-);
-
-return;
-
-}
-
-document.getElementById(
-"accountTransferModal"
-).classList.add("active");
+    renderAccounts();
+    renderEnvelopes();
+    renderTransactions();
+    renderBudgets();
+    updateSelects();
 
 }
 
 
-function openTransaction(){
-
-document.getElementById(
-"transactionModal"
-).classList.add("active");
-
-}
-
-
-function closeModals(){
-
-document
-.querySelectorAll(".modal")
-.forEach(x=>
-x.classList.remove("active")
-);
-
-}
-
-
-function escapeHTML(value){
-
-return String(value)
-.replaceAll("&","&amp;")
-.replaceAll("<","&lt;")
-.replaceAll(">","&gt;")
-.replaceAll('"',"&quot;")
-.replaceAll("'","&#039;");
-
-}
-
-
-document.getElementById("date")
-.innerText=
-new Date().toLocaleDateString(
-"tr-TR",
-{
-day:"numeric",
-month:"long",
-year:"numeric"
-}
-);
-
-
-render();
 /* =========================
-   FINPAL V5 - BUTCE MODULU
-   ========================= */
+   HESAPLAR
+========================= */
 
-if(!data.budgets){
-    data.budgets=[];
-}
+function renderAccounts(){
 
-function currentMonth(){
-    const d=new Date();
-    return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
-}
+    const el =
+        document.getElementById("accounts");
 
-function getBudgetSpent(category,month){
-    return data.transactions
-        .filter(x=>{
-            if(x.type!=="expense") return false;
-            if(x.category!==category) return false;
-
-            const d=new Date(x.date);
-            const m=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
-
-            return m===month;
-        })
-        .reduce((sum,x)=>sum+Number(x.amount||0),0);
-}
-
-function budgetStatus(percent){
-
-    if(percent>=100){
-        return {
-            text:"Bütçe aşıldı",
-            className:"negative"
-        };
-    }
-
-    if(percent>=75){
-        return {
-            text:"Dikkat",
-            className:"negative"
-        };
-    }
-
-    return {
-        text:"Normal",
-        className:"positive"
-    };
-}
-
-function addBudget(){
-    const category=prompt("Bütçe kategorisi:\n\nÖrn: Market");
-    if(!category) return;
-
-    const amount=parseFloat(prompt("Aylık bütçe tutarı:"));
-    if(!amount || amount<=0){
-        alert("Geçerli bir tutar gir.");
-        return;
-    }
-
-    let envelopeId="";
-
-    if(data.envelopes && data.envelopes.length){
-        const list=data.envelopes
-            .map((e,i)=>(i+1)+". "+e.name)
-            .join("\n");
-
-        const choice=prompt(
-            "Bu bütçeyi hangi zarfa bağlayalım?\n\n"+
-            list+
-            "\n\n0 = Zarf bağlama"
-        );
-
-        const n=parseInt(choice);
-
-        if(n>0 && data.envelopes[n-1]){
-            envelopeId=data.envelopes[n-1].id;
-        }
-    }
-
-    const month=currentMonth();
-
-    const existing=data.budgets.find(
-        x=>x.category===category && x.month===month
-    );
-
-    if(existing){
-        existing.amount=amount;
-        existing.envelopeId=envelopeId;
-    }else{
-        data.budgets.push({
-            id:Date.now(),
-            category:category,
-            amount:amount,
-            month:month,
-            envelopeId:envelopeId
-        });
-    }
-    save();
-    renderBudgets();
-}
+    if(!el) return;
 
 
-function deleteBudget(index){
+    if(!data.accounts.length){
 
-    if(
-        !confirm(
-            "Bu bütçeyi silmek istediğine emin misin?"
-        )
-    ) return;
-
-    data.budgets.splice(index,1);
-
-    save();
-
-    renderBudgets();
-
-}
-
-function editBudget(index){
-
-    const budget=
-        data.budgets[index];
-
-    const amount=
-        parseFloat(
-            prompt(
-                "Yeni bütçe tutarı:",
-                budget.amount
-            )
-        );
-
-    if(!amount || amount<=0){
-        alert("Geçerli bir tutar gir.");
-        return;
-    }
-
-    budget.amount=amount;
-
-    save();
-
-    renderBudgets();
-
-}
-
-function renderBudgets(){
-
-    const container=
-        document.getElementById(
-            "budgetList"
-        );
-
-    if(!container) return;
-
-    const month=currentMonth();
-
-    const budgets=
-        data.budgets.filter(
-            x=>x.month===month
-        );
-
-    if(!budgets.length){
-
-        container.innerHTML=`
-            <div class="muted">
-                Bu ay henüz bütçe oluşturulmadı.
-            </div>
-        `;
+        el.innerHTML =
+            '<div class="muted">Henüz hesap yok.</div>';
 
         return;
+
     }
 
-    container.innerHTML=
-        budgets.map((budget,index)=>{
 
-            const spent=
-                getBudgetSpent(
-                    budget.category,
-                    month
-                );
+    el.innerHTML =
+        data.accounts.map((x,index) => {
 
-            const remaining=
-                Number(budget.amount)-spent;
+            const liability =
+                accountIsLiability(x);
 
-            const percent=
-                Number(budget.amount)>0
-                ?(spent/Number(budget.amount))*100
-                :0;
+            const value =
+                Number(x.balance || 0);
 
-            const safePercent=
-                Math.min(
-                    Math.max(percent,0),
-                    100
-                );
 
-            const status=
-                budgetStatus(percent);
-const linkedEnvelope=data.envelopes
-    ? data.envelopes.find(
-        e=>String(e.id)===String(budget.envelopeId)
-      )
-    : null;
-            const realIndex=
-                data.budgets.indexOf(
-                    budget
-                );
-
-            return`
+            return `
 
             <div class="account">
 
@@ -1717,83 +870,36 @@ const linkedEnvelope=data.envelopes
 
                         <strong>
                             ${escapeHTML(
-                                budget.category
+                                x.name || "Hesap"
                             )}
                         </strong>
 
                         <br>
 
                         <small>
-    Planlanan:
-    ${money(budget.amount)}
-</small>
-
-<br>
-
-<small>
-    📦 Zarf:
-    ${
-        linkedEnvelope
-        ? escapeHTML(linkedEnvelope.name)
-        : "Bağlı değil"
-    }
-</small>
+                            ${accountTypeName(x.type)}
+                        </small>
 
                     </div>
 
                     <strong class="${
-                        remaining<0
-                        ?"negative"
-                        :"positive"
+                        liability
+                        ? "negative"
+                        : "positive"
                     }">
 
-                        ${money(remaining)}
+                        ${money(value)}
 
                     </strong>
 
                 </div>
 
-                <div style="
-                    height:8px;
-                    background:#eee;
-                    border-radius:20px;
-                    overflow:hidden;
-                    margin:9px 0;
-                ">
-
-                    <div style="
-                        height:100%;
-                        width:${safePercent}%;
-                        background:#f07818;
-                        border-radius:20px;
-                    "></div>
-
-                </div>
-
-                <div class="row">
-
-                    <small>
-                        Harcanan:
-                        ${money(spent)}
-                    </small>
-
-                    <small class="${
-                        status.className
-                    }">
-
-                        ${Math.round(percent)}%
-                        ·
-                        ${status.text}
-
-                    </small>
-
-                </div>
 
                 <div class="account-actions">
 
                     <button
                         class="small"
-                        onclick="editBudget(${realIndex})">
+                        onclick="editAccount(${index})">
 
                         ✏️ Düzenle
 
@@ -1801,7 +907,7 @@ const linkedEnvelope=data.envelopes
 
                     <button
                         class="small danger"
-                        onclick="deleteBudget(${realIndex})">
+                        onclick="deleteAccount(${index})">
 
                         🗑️ Sil
 
@@ -1818,97 +924,815 @@ const linkedEnvelope=data.envelopes
 }
 
 
-/* Bütçe kartını ana sayfaya ekle */
+/* =========================
+   ZARFLAR
+========================= */
 
-function createBudgetCard(){
+function renderEnvelopes(){
 
-    if(
-        document.getElementById(
-            "budgetCard"
-        )
-    ) return;
+    const el =
+        document.getElementById("envelopes");
 
-    const grid=
-        document.querySelector(".grid");
+    if(!el) return;
 
-    if(!grid) return;
 
-    const card=
-        document.createElement("section");
+    if(!data.envelopes.length){
 
-    card.className="card";
+        el.innerHTML =
+            '<div class="muted">Henüz zarf yok.</div>';
 
-    card.id="budgetCard";
+        return;
 
-    card.innerHTML=`
+    }
 
-        <h2>📊 Aylık Bütçe</h2>
 
-        <div id="budgetList">
+    el.innerHTML =
+        data.envelopes.map(x => {
 
-            <div class="muted">
-                Bu ay henüz bütçe oluşturulmadı.
+            const budget =
+                Number(x.budget || 0);
+
+            const spent =
+                Number(x.spent || 0);
+
+            const remaining =
+                budget - spent;
+
+            const percent =
+                budget > 0
+                ? Math.min(
+                    Math.max(
+                        spent / budget * 100,
+                        0
+                    ),
+                    100
+                )
+                : 0;
+
+
+            return `
+
+            <div>
+
+                <div class="row">
+
+                    <span>
+
+                        <strong>
+                            ${escapeHTML(
+                                x.name || "Zarf"
+                            )}
+                        </strong>
+
+                        <br>
+
+                        <small>
+                            Harcanan:
+                            ${money(spent)}
+                        </small>
+
+                    </span>
+
+                    <strong class="${
+                        remaining < 0
+                        ? "negative"
+                        : "positive"
+                    }">
+
+                        ${money(remaining)}
+
+                    </strong>
+
+                </div>
+
+
+                <div style="
+                    height:7px;
+                    background:#eee;
+                    border-radius:20px;
+                    overflow:hidden;
+                    margin:6px 0 10px;
+                ">
+
+                    <div style="
+                        height:100%;
+                        width:${percent}%;
+                        background:#f07818;
+                        border-radius:20px;
+                    "></div>
+
+                </div>
+
             </div>
 
-        </div>
+            `;
 
-        <button onclick="addBudget()">
-            + Bütçe Ekle
-        </button>
-
-    `;
-
-    grid.insertBefore(
-        card,
-        grid.firstElementChild
-    );
-
-    renderBudgets();
+        }).join("");
 
 }
 
 
-/* Ana render fonksiyonuna bağla */
+/* =========================
+   İŞLEMLER
+========================= */
 
-const oldRender=render;
+function renderTransactions(){
 
-render=function(){
+    const el =
+        document.getElementById("transactions");
 
-    oldRender();
+    if(!el) return;
 
-    createBudgetCard();
 
-    renderBudgets();
+    if(!data.transactions.length){
 
-};
-function openEnvelope(){
-
-    const name=prompt(
-        "Zarf adı:\n\nÖrn: Market"
-    );
-
-    if(!name) return;
-
-    const budget=parseFloat(
-        prompt("Zarf bütçesi:")
-    );
-
-    if(!budget || budget<=0){
-
-        alert("Geçerli bir bütçe gir.");
+        el.innerHTML =
+            '<div class="muted">Henüz işlem yok.</div>';
 
         return;
+
     }
 
-    if(!data.envelopes){
-        data.envelopes=[];
+
+    el.innerHTML =
+        data.transactions
+        .slice()
+        .reverse()
+        .slice(0,10)
+        .map(x => `
+
+            <div class="row">
+
+                <span>
+
+                    <strong>
+                        ${escapeHTML(
+                            x.description ||
+                            x.category ||
+                            "İşlem"
+                        )}
+                    </strong>
+
+                    <br>
+
+                    <small>
+                        ${escapeHTML(
+                            x.category || ""
+                        )}
+                    </small>
+
+                </span>
+
+                <strong class="${
+                    x.type === "income"
+                    ? "positive"
+                    : "negative"
+                }">
+
+                    ${
+                        x.type === "income"
+                        ? "+"
+                        : x.type === "expense"
+                        ? "-"
+                        : ""
+                    }
+
+                    ${money(x.amount)}
+
+                </strong>
+
+            </div>
+
+        `)
+        .join("");
+
+}
+
+
+/* =========================
+   SELECTLER
+========================= */
+
+function updateSelects(){
+
+    const accountOptions =
+        data.accounts.map(x => `
+
+            <option value="${x.id}">
+                ${escapeHTML(x.name)}
+            </option>
+
+        `).join("");
+
+
+    const accountSelect =
+        document.getElementById(
+            "transactionAccount"
+        );
+
+    const transferFrom =
+        document.getElementById(
+            "transferFrom"
+        );
+
+    const transferTo =
+        document.getElementById(
+            "transferTo"
+        );
+
+
+    if(accountSelect){
+
+        accountSelect.innerHTML =
+            '<option value="">Hesap seç</option>' +
+            accountOptions;
+
     }
+
+
+    if(transferFrom){
+
+        transferFrom.innerHTML =
+            accountOptions;
+
+    }
+
+
+    if(transferTo){
+
+        transferTo.innerHTML =
+            accountOptions;
+
+    }
+
+
+    const envelopeOptions =
+        data.envelopes.map(x => `
+
+            <option value="${x.id}">
+                ${escapeHTML(x.name)}
+            </option>
+
+        `).join("");
+
+
+    const envelopeSelect =
+        document.getElementById(
+            "transactionEnvelope"
+        );
+
+
+    if(envelopeSelect){
+
+        envelopeSelect.innerHTML =
+            '<option value="">Zarf seç</option>' +
+            envelopeOptions;
+
+    }
+
+}
+
+
+/* =========================
+   HESAP EKLE
+========================= */
+
+function addAccount(){
+
+    const name =
+        document.getElementById(
+            "accountName"
+        ).value.trim();
+
+
+    const type =
+        document.getElementById(
+            "accountType"
+        ).value;
+
+
+    const balance =
+        parseFloat(
+            document.getElementById(
+                "accountBalance"
+            ).value
+        ) || 0;
+
+
+    if(!name){
+
+        alert("Hesap adı gir.");
+
+        return;
+
+    }
+
+
+    data.accounts.push({
+
+        id:Date.now(),
+
+        name:name,
+
+        type:type,
+
+        balance:balance
+
+    });
+
+
+    save();
+
+
+    document.getElementById(
+        "accountName"
+    ).value = "";
+
+
+    document.getElementById(
+        "accountBalance"
+    ).value = "";
+
+
+    closeModals();
+
+}
+
+
+/* =========================
+   HESAP DÜZENLE
+========================= */
+
+function editAccount(index){
+
+    const account =
+        data.accounts[index];
+
+    if(!account) return;
+
+
+    const name =
+        prompt(
+            "Hesap adı:",
+            account.name
+        );
+
+
+    if(name === null) return;
+
+
+    const balance =
+        parseFloat(
+            prompt(
+                "Mevcut bakiye:",
+                account.balance
+            )
+        );
+
+
+    if(isNaN(balance)){
+
+        alert(
+            "Geçerli bakiye gir."
+        );
+
+        return;
+
+    }
+
+
+    account.name =
+        name.trim() || account.name;
+
+    account.balance =
+        balance;
+
+
+    save();
+
+}
+
+
+/* =========================
+   HESAP SİL
+========================= */
+
+function deleteAccount(index){
+
+    if(
+        !confirm(
+            "Bu hesabı silmek istediğine emin misin?"
+        )
+    ){
+
+        return;
+
+    }
+
+
+    data.accounts.splice(
+        index,
+        1
+    );
+
+
+    save();
+
+}
+
+
+/* =========================
+   HESAP TRANSFERİ
+========================= */
+
+function transferAccount(){
+
+    const fromId =
+        Number(
+            document.getElementById(
+                "transferFrom"
+            ).value
+        );
+
+
+    const toId =
+        Number(
+            document.getElementById(
+                "transferTo"
+            ).value
+        );
+
+
+    const amount =
+        parseFloat(
+            document.getElementById(
+                "accountTransferAmount"
+            ).value
+        );
+
+
+    if(!fromId || !toId){
+
+        alert(
+            "Kaynak ve hedef hesap seç."
+        );
+
+        return;
+
+    }
+
+
+    if(fromId === toId){
+
+        alert(
+            "Kaynak ve hedef hesap aynı olamaz."
+        );
+
+        return;
+
+    }
+
+
+    if(!amount || amount <= 0){
+
+        alert(
+            "Geçerli bir tutar gir."
+        );
+
+        return;
+
+    }
+
+
+    const from =
+        data.accounts.find(
+            x => Number(x.id) === fromId
+        );
+
+
+    const to =
+        data.accounts.find(
+            x => Number(x.id) === toId
+        );
+
+
+    if(!from || !to){
+
+        alert(
+            "Hesap bulunamadı."
+        );
+
+        return;
+
+    }
+
+
+    if(accountIsLiability(from)){
+
+        from.balance += amount;
+
+    }else{
+
+        from.balance -= amount;
+
+    }
+
+
+    if(accountIsLiability(to)){
+
+        to.balance -= amount;
+
+    }else{
+
+        to.balance += amount;
+
+    }
+
+
+    data.transactions.push({
+
+        id:Date.now(),
+
+        type:"transfer",
+
+        amount:amount,
+
+        description:
+            from.name +
+            " → " +
+            to.name,
+
+        category:"Hesap Transferi",
+
+        accountId:from.id,
+
+        targetAccountId:to.id,
+
+        date:new Date().toISOString()
+
+    });
+
+
+    save();
+
+
+    document.getElementById(
+        "accountTransferAmount"
+    ).value = "";
+
+
+    closeModals();
+
+}
+
+
+/* =========================
+   İŞLEM EKLE
+========================= */
+
+function addTransaction(){
+
+    const type =
+        document.getElementById(
+            "transactionType"
+        ).value;
+
+
+    const amount =
+        parseFloat(
+            document.getElementById(
+                "transactionAmount"
+            ).value
+        );
+
+
+    const description =
+        document.getElementById(
+            "transactionDescription"
+        ).value.trim();
+
+
+    const category =
+        document.getElementById(
+            "transactionCategory"
+        ).value;
+
+
+    const accountId =
+        document.getElementById(
+            "transactionAccount"
+        ).value;
+
+
+    let envelopeId =
+        document.getElementById(
+            "transactionEnvelope"
+        ).value;
+
+
+    if(!amount || amount <= 0){
+
+        alert(
+            "Geçerli bir tutar gir."
+        );
+
+        return;
+
+    }
+
+
+    /*
+       Bütçe kategorisi için
+       bağlı zarfı otomatik bul
+    */
+
+    if(
+        type === "expense" &&
+        !envelopeId
+    ){
+
+        const budget =
+            data.budgets.find(
+                x =>
+                    x.category === category &&
+                    x.month === currentMonth() &&
+                    x.envelopeId
+            );
+
+
+        if(budget){
+
+            envelopeId =
+                String(
+                    budget.envelopeId
+                );
+
+        }
+
+    }
+
+
+    const transaction = {
+
+        id:Date.now(),
+
+        type:type,
+
+        amount:amount,
+
+        description:description,
+
+        category:category,
+
+        accountId:accountId,
+
+        envelopeId:envelopeId,
+
+        date:new Date().toISOString()
+
+    };
+
+
+    data.transactions.push(
+        transaction
+    );
+
+
+    /* Hesap bakiyesi */
+
+    if(accountId){
+
+        const account =
+            data.accounts.find(
+                x =>
+                    String(x.id) ===
+                    String(accountId)
+            );
+
+
+        if(account){
+
+            if(
+                accountIsLiability(account)
+            ){
+
+                if(type === "expense"){
+
+                    account.balance += amount;
+
+                }else if(type === "income"){
+
+                    account.balance -= amount;
+
+                }
+
+            }else{
+
+                if(type === "income"){
+
+                    account.balance += amount;
+
+                }else if(type === "expense"){
+
+                    account.balance -= amount;
+
+                }
+
+            }
+
+        }
+
+    }
+
+
+    /* Gideri zarfa ekle */
+
+    if(
+        type === "expense" &&
+        envelopeId
+    ){
+
+        const envelope =
+            data.envelopes.find(
+                x =>
+                    String(x.id) ===
+                    String(envelopeId)
+            );
+
+
+        if(envelope){
+
+            envelope.spent =
+                Number(
+                    envelope.spent || 0
+                ) + amount;
+
+        }
+
+    }
+
+
+    save();
+
+
+    document.getElementById(
+        "transactionAmount"
+    ).value = "";
+
+
+    document.getElementById(
+        "transactionDescription"
+    ).value = "";
+
+
+    closeModals();
+
+}
+
+
+/* =========================
+   ZARF EKLE
+========================= */
+
+function openEnvelope(){
+
+    const name =
+        prompt(
+            "Zarf adı:\n\nÖrn: Market"
+        );
+
+
+    if(!name || !name.trim()){
+
+        return;
+
+    }
+
+
+    const budget =
+        parseFloat(
+            prompt(
+                "Zarf bütçesi:"
+            )
+        );
+
+
+    if(!budget || budget <= 0){
+
+        alert(
+            "Geçerli bir bütçe gir."
+        );
+
+        return;
+
+    }
+
 
     data.envelopes.push({
 
         id:Date.now(),
 
-        name:name,
+        name:name.trim(),
 
         budget:budget,
 
@@ -1916,53 +1740,66 @@ function openEnvelope(){
 
     });
 
-    save();
 
-    render();
+    save();
 
 }
 
 
+/* =========================
+   ZARF TRANSFERİ
+========================= */
+
 function openTransfer(){
 
-    if(!data.envelopes ||
-       data.envelopes.length<2){
+    if(
+        data.envelopes.length < 2
+    ){
 
         alert(
             "Zarf transferi için en az 2 zarf gerekli."
         );
 
         return;
+
     }
 
-    const names=
+
+    const names =
         data.envelopes
         .map(
-            (x,i)=>
-            (i+1)+". "+x.name
+            (x,i) =>
+                (i+1) +
+                ". " +
+                x.name
         )
         .join("\n");
 
-    const fromNumber=
+
+    const fromNumber =
         parseInt(
             prompt(
-                "Kaynak zarfı seç:\n\n"+
+                "Kaynak zarfı seç:\n\n" +
                 names
             )
         );
 
-    const toNumber=
+
+    const toNumber =
         parseInt(
             prompt(
-                "Hedef zarfı seç:\n\n"+
+                "Hedef zarfı seç:\n\n" +
                 names
             )
         );
+
 
     if(
         !fromNumber ||
         !toNumber ||
-        fromNumber===toNumber
+        fromNumber === toNumber ||
+        !data.envelopes[fromNumber-1] ||
+        !data.envelopes[toNumber-1]
     ){
 
         alert(
@@ -1970,53 +1807,773 @@ function openTransfer(){
         );
 
         return;
+
     }
 
-    const amount=parseFloat(
-        prompt("Transfer tutarı:")
-    );
 
-    if(!amount || amount<=0){
+    const amount =
+        parseFloat(
+            prompt(
+                "Transfer tutarı:"
+            )
+        );
+
+
+    if(!amount || amount <= 0){
 
         alert(
             "Geçerli bir tutar gir."
         );
 
         return;
+
     }
 
-    const from=
-        data.envelopes[fromNumber-1];
 
-    const to=
-        data.envelopes[toNumber-1];
+    const from =
+        data.envelopes[
+            fromNumber - 1
+        ];
 
-    const available=
-        Number(from.budget||0)-
-        Number(from.spent||0);
 
-    if(amount>available){
+    const to =
+        data.envelopes[
+            toNumber - 1
+        ];
+
+
+    const available =
+        Number(from.budget || 0) -
+        Number(from.spent || 0);
+
+
+    if(amount > available){
 
         alert(
             "Kaynak zarfta yeterli para yok."
         );
 
         return;
+
     }
 
-    from.budget-=amount;
 
-    to.budget+=amount;
+    from.budget =
+        Number(from.budget || 0) -
+        amount;
+
+
+    to.budget =
+        Number(to.budget || 0) +
+        amount;
+
 
     save();
 
-    render();
 
     alert(
         "Zarf transferi tamamlandı."
     );
 
 }
+
+
+/* =========================
+   MODALLAR
+========================= */
+
+function openAccount(){
+
+    document.getElementById(
+        "accountModal"
+    ).classList.add("active");
+
+}
+
+
+function openAccountTransfer(){
+
+    if(
+        data.accounts.length < 2
+    ){
+
+        alert(
+            "Transfer için en az iki hesap gerekli."
+        );
+
+        return;
+
+    }
+
+
+    updateSelects();
+
+
+    document.getElementById(
+        "accountTransferModal"
+    ).classList.add("active");
+
+}
+
+
+function openTransaction(){
+
+    updateSelects();
+
+
+    document.getElementById(
+        "transactionModal"
+    ).classList.add("active");
+
+}
+
+
+function closeModals(){
+
+    document
+        .querySelectorAll(".modal")
+        .forEach(
+            x =>
+                x.classList.remove(
+                    "active"
+                )
+        );
+
+}
+
+
+/* =========================
+   BÜTÇELER
+========================= */
+
+function getBudgetSpent(
+    category,
+    month
+){
+
+    return data.transactions
+
+        .filter(x => {
+
+            if(
+                x.type !== "expense"
+            ){
+
+                return false;
+
+            }
+
+
+            if(
+                x.category !== category
+            ){
+
+                return false;
+
+            }
+
+
+            const d =
+                new Date(x.date);
+
+
+            const m =
+                d.getFullYear() +
+                "-" +
+                String(
+                    d.getMonth()+1
+                ).padStart(2,"0");
+
+
+            return m === month;
+
+        })
+
+        .reduce(
+            (sum,x) =>
+                sum +
+                Number(
+                    x.amount || 0
+                ),
+            0
+        );
+
+}
+
+
+function budgetStatus(percent){
+
+    if(percent >= 100){
+
+        return {
+            text:"Bütçe aşıldı",
+            className:"negative"
+        };
+
+    }
+
+
+    if(percent >= 75){
+
+        return {
+            text:"Dikkat",
+            className:"negative"
+        };
+
+    }
+
+
+    return {
+        text:"Normal",
+        className:"positive"
+    };
+
+}
+
+
+function addBudget(){
+
+    const category =
+        prompt(
+            "Bütçe kategorisi:\n\nÖrn: Market"
+        );
+
+
+    if(
+        !category ||
+        !category.trim()
+    ){
+
+        return;
+
+    }
+
+
+    const amount =
+        parseFloat(
+            prompt(
+                "Aylık bütçe tutarı:"
+            )
+        );
+
+
+    if(!amount || amount <= 0){
+
+        alert(
+            "Geçerli bir tutar gir."
+        );
+
+        return;
+
+    }
+
+
+    let envelopeId = "";
+
+
+    if(
+        data.envelopes.length
+    ){
+
+        const list =
+            data.envelopes
+            .map(
+                (e,i) =>
+                    (i+1) +
+                    ". " +
+                    e.name
+            )
+            .join("\n");
+
+
+        const choice =
+            prompt(
+                "Bu bütçeyi hangi zarfa bağlayalım?\n\n" +
+                list +
+                "\n\n0 = Zarf bağlama"
+            );
+
+
+        const n =
+            parseInt(choice);
+
+
+        if(
+            n > 0 &&
+            data.envelopes[n-1]
+        ){
+
+            envelopeId =
+                data.envelopes[n-1].id;
+
+        }
+
+    }
+
+
+    const month =
+        currentMonth();
+
+
+    const existing =
+        data.budgets.find(
+            x =>
+                x.category ===
+                category.trim() &&
+                x.month === month
+        );
+
+
+    if(existing){
+
+        existing.amount =
+            amount;
+
+        existing.envelopeId =
+            envelopeId;
+
+    }else{
+
+        data.budgets.push({
+
+            id:Date.now(),
+
+            category:
+                category.trim(),
+
+            amount:amount,
+
+            month:month,
+
+            envelopeId:
+                envelopeId
+
+        });
+
+    }
+
+
+    save();
+
+}
+
+
+function deleteBudget(index){
+
+    if(
+        !confirm(
+            "Bu bütçeyi silmek istediğine emin misin?"
+        )
+    ){
+
+        return;
+
+    }
+
+
+    data.budgets.splice(
+        index,
+        1
+    );
+
+
+    save();
+
+}
+
+
+function editBudget(index){
+
+    const budget =
+        data.budgets[index];
+
+
+    if(!budget) return;
+
+
+    const amount =
+        parseFloat(
+            prompt(
+                "Yeni bütçe tutarı:",
+                budget.amount
+            )
+        );
+
+
+    if(!amount || amount <= 0){
+
+        alert(
+            "Geçerli bir tutar gir."
+        );
+
+        return;
+
+    }
+
+
+    budget.amount =
+        amount;
+
+
+    save();
+
+}
+
+
+function renderBudgets(){
+
+    const grid =
+        document.querySelector(
+            ".grid"
+        );
+
+
+    if(!grid) return;
+
+
+    let card =
+        document.getElementById(
+            "budgetCard"
+        );
+
+
+    if(!card){
+
+        card =
+            document.createElement(
+                "section"
+            );
+
+        card.className =
+            "card";
+
+        card.id =
+            "budgetCard";
+
+
+        card.innerHTML = `
+
+            <h2>📊 Aylık Bütçe</h2>
+
+            <div id="budgetList"></div>
+
+            <button onclick="addBudget()">
+                + Bütçe Ekle
+            </button>
+
+        `;
+
+
+        grid.insertBefore(
+            card,
+            grid.firstElementChild
+        );
+
+    }
+
+
+    const container =
+        document.getElementById(
+            "budgetList"
+        );
+
+
+    if(!container) return;
+
+
+    const month =
+        currentMonth();
+
+
+    const budgets =
+        data.budgets.filter(
+            x =>
+                x.month === month
+        );
+
+
+    if(!budgets.length){
+
+        container.innerHTML = `
+
+            <div class="muted">
+                Bu ay henüz bütçe oluşturulmadı.
+            </div>
+
+        `;
+
+        return;
+
+    }
+
+
+    container.innerHTML =
+        budgets.map(
+            budget => {
+
+                const spent =
+                    getBudgetSpent(
+                        budget.category,
+                        month
+                    );
+
+
+                const remaining =
+                    Number(
+                        budget.amount
+                    ) - spent;
+
+
+                const percent =
+                    Number(
+                        budget.amount
+                    ) > 0
+
+                    ? (
+                        spent /
+                        Number(
+                            budget.amount
+                        )
+                    ) * 100
+
+                    : 0;
+
+
+                const safePercent =
+                    Math.min(
+                        Math.max(
+                            percent,
+                            0
+                        ),
+                        100
+                    );
+
+
+                const status =
+                    budgetStatus(
+                        percent
+                    );
+
+
+                const linkedEnvelope =
+                    data.envelopes.find(
+                        e =>
+                            String(e.id) ===
+                            String(
+                                budget.envelopeId
+                            )
+                    );
+
+
+                const realIndex =
+                    data.budgets.indexOf(
+                        budget
+                    );
+
+
+                return `
+
+                <div class="account">
+
+                    <div class="account-top">
+
+                        <div>
+
+                            <strong>
+                                ${escapeHTML(
+                                    budget.category
+                                )}
+                            </strong>
+
+                            <br>
+
+                            <small>
+                                Planlanan:
+                                ${money(
+                                    budget.amount
+                                )}
+                            </small>
+
+                            <br>
+
+                            <small>
+                                📦 Zarf:
+                                ${
+                                    linkedEnvelope
+                                    ? escapeHTML(
+                                        linkedEnvelope.name
+                                      )
+                                    : "Bağlı değil"
+                                }
+                            </small>
+
+                        </div>
+
+
+                        <strong class="${
+                            remaining < 0
+                            ? "negative"
+                            : "positive"
+                        }">
+
+                            ${money(
+                                remaining
+                            )}
+
+                        </strong>
+
+                    </div>
+
+
+                    <div style="
+                        height:8px;
+                        background:#eee;
+                        border-radius:20px;
+                        overflow:hidden;
+                        margin:9px 0;
+                    ">
+
+                        <div style="
+                            height:100%;
+                            width:${safePercent}%;
+                            background:#f07818;
+                            border-radius:20px;
+                        "></div>
+
+                    </div>
+
+
+                    <div class="row">
+
+                        <small>
+                            Harcanan:
+                            ${money(spent)}
+                        </small>
+
+                        <small class="${
+                            status.className
+                        }">
+
+                            ${Math.round(
+                                percent
+                            )}%
+
+                            ·
+
+                            ${status.text}
+
+                        </small>
+
+                    </div>
+
+
+                    <div class="account-actions">
+
+                        <button
+                            class="small"
+                            onclick="editBudget(${realIndex})">
+
+                            ✏️ Düzenle
+
+                        </button>
+
+                        <button
+                            class="small danger"
+                            onclick="deleteBudget(${realIndex})">
+
+                            🗑️ Sil
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+                `;
+
+            }
+        ).join("");
+
+}
+
+
+/* =========================
+   TARİH
+========================= */
+
+const dateElement =
+    document.getElementById("date");
+
+
+if(dateElement){
+
+    dateElement.innerText =
+        new Date().toLocaleDateString(
+            "tr-TR",
+            {
+                day:"numeric",
+                month:"long",
+                year:"numeric"
+            }
+        );
+
+}
+
+
+/* =========================
+   BAŞLANGIÇ
+========================= */
+
+render();
+
+
+/* =========================
+   iPHONE / SAFARI İÇİN
+   GLOBAL FONKSİYONLAR
+========================= */
+
+window.openAccount =
+    openAccount;
+
+window.openAccountTransfer =
+    openAccountTransfer;
+
+window.openTransaction =
+    openTransaction;
+
+window.closeModals =
+    closeModals;
+
+window.addAccount =
+    addAccount;
+
+window.editAccount =
+    editAccount;
+
+window.deleteAccount =
+    deleteAccount;
+
+window.transferAccount =
+    transferAccount;
+
+window.addTransaction =
+    addTransaction;
+
+window.openEnvelope =
+    openEnvelope;
+
+window.openTransfer =
+    openTransfer;
+
+window.addBudget =
+    addBudget;
+
+window.editBudget =
+    editBudget;
+
+window.deleteBudget =
+    deleteBudget;
+
 </script>
 
 </body>
