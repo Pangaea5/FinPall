@@ -4,7 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f07818">
-<title>FinPal</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="FinPal">
+<title>FinPal v4</title>
 
 <style>
 *{box-sizing:border-box}
@@ -43,24 +45,22 @@ font-size:12px;
 color:#777
 }
 
-.card{
-background:#fff;
-border:1px solid #e4e8e5;
-border-radius:20px;
-padding:18px;
-margin-bottom:15px;
-box-shadow:0 6px 20px #00000009
-}
-
 .hero{
 background:linear-gradient(135deg,#b94708,#f07818);
-color:#fff
+color:white;
+padding:22px;
+border-radius:24px;
+margin-bottom:15px
+}
+
+.hero small{
+opacity:.85
 }
 
 .balance{
 font-size:38px;
 font-weight:900;
-margin:8px 0 18px
+margin:7px 0 18px
 }
 
 .stats{
@@ -80,9 +80,23 @@ display:block;
 margin-top:4px
 }
 
-h2{
-font-size:18px;
-margin:0 0 14px
+.grid{
+display:grid;
+grid-template-columns:repeat(2,1fr);
+gap:14px
+}
+
+.card{
+background:#fff;
+border:1px solid #e4e8e5;
+border-radius:18px;
+padding:17px;
+box-shadow:0 6px 20px #00000009
+}
+
+.card h2{
+font-size:17px;
+margin:0 0 13px
 }
 
 .row{
@@ -94,18 +108,42 @@ border-bottom:1px solid #eee
 }
 
 .row:last-child{
-border:0
+border-bottom:0
+}
+
+.muted{
+font-size:13px;
+color:#777
+}
+
+.account{
+padding:12px 0;
+border-bottom:1px solid #eee
+}
+
+.account:last-child{
+border-bottom:0
+}
+
+.account-top{
+display:flex;
+justify-content:space-between
+}
+
+.account-actions{
+margin-top:8px;
+display:flex;
+gap:6px
 }
 
 button{
 border:0;
 border-radius:12px;
-padding:12px 15px;
+padding:11px 14px;
 background:#f07818;
-color:#fff;
+color:white;
 font-weight:750;
-font-size:14px;
-margin:4px
+font-size:14px
 }
 
 .dark{
@@ -116,30 +154,89 @@ background:#18342b
 background:#c43d2f
 }
 
-.settings{
-display:grid;
-grid-template-columns:repeat(2,1fr);
-gap:10px
+.small{
+padding:7px 9px;
+font-size:12px
 }
 
-.help{
-font-size:13px;
-color:#777;
-line-height:1.5
+.positive{
+color:#16824f
+}
+
+.negative{
+color:#c74624
+}
+
+.modal{
+display:none;
+position:fixed;
+inset:0;
+background:#0008;
+z-index:20;
+align-items:flex-end
+}
+
+.modal.active{
+display:flex
+}
+
+.sheet{
+background:white;
+width:100%;
+max-width:600px;
+margin:auto;
+padding:20px;
+border-radius:24px 24px 0 0;
+max-height:90vh;
+overflow:auto
+}
+
+input,select{
+width:100%;
+padding:13px;
+margin:7px 0 12px;
+border:1px solid #ddd;
+border-radius:12px;
+font-size:16px;
+background:white
+}
+
+.actions{
+display:flex;
+gap:8px
+}
+
+.actions button{
+flex:1
+}
+
+.bottom{
+position:fixed;
+bottom:0;
+left:0;
+right:0;
+background:white;
+border-top:1px solid #ddd;
+padding:9px;
+display:flex;
+gap:7px;
+z-index:10
+}
+
+.bottom button{
+flex:1
 }
 
 @media(max-width:600px){
-.settings{
+
+.grid{
 grid-template-columns:1fr
 }
 
 .balance{
 font-size:34px
 }
-}
 
-input[type=file]{
-display:none
 }
 </style>
 </head>
@@ -159,124 +256,270 @@ Fin<span>Pal</span>
 </header>
 
 
-<div class="card hero">
+<section class="hero">
 
-<div>Toplam Bakiye</div>
+<small>Net Varlık</small>
 
-<div class="balance" id="balance">
+<div class="balance" id="netWorth">
 ₺0,00
 </div>
 
 <div class="stats">
 
 <div class="stat">
-<small>Gelir</small>
-<b id="income">₺0,00</b>
+<small>Varlık</small>
+<b id="assets">₺0,00</b>
 </div>
 
 <div class="stat">
-<small>Gider</small>
-<b id="expense">₺0,00</b>
+<small>Borç</small>
+<b id="liabilities">₺0,00</b>
 </div>
 
 <div class="stat">
-<small>Net</small>
-<b id="net">₺0,00</b>
+<small>Bu Ay</small>
+<b id="monthlyNet">₺0,00</b>
 </div>
 
 </div>
 
-</div>
+</section>
 
 
-<div class="card">
-
-<h2>⚙️ Veri Yönetimi</h2>
-
-<p class="help">
-FinPal verilerin bu cihazdaki tarayıcıda saklanır.
-Telefon değiştirirken veya uygulamayı sıfırlarken
-yedek oluşturman önerilir.
-</p>
-
-<div class="settings">
-
-<button onclick="backupData()">
-💾 Verileri Yedekle
-</button>
-
-<button class="dark" onclick="document.getElementById('restoreFile').click()">
-📥 Yedekten Geri Yükle
-</button>
-
-</div>
-
-<input
-id="restoreFile"
-type="file"
-accept=".json,application/json"
-onchange="restoreData(event)"
->
-
-</div>
+<div class="grid">
 
 
-<div class="card">
-
-<h2>📊 Finans Özeti</h2>
-
-<div class="row">
-<span>Toplam Gelir</span>
-<b id="summaryIncome">₺0</b>
-</div>
-
-<div class="row">
-<span>Toplam Gider</span>
-<b id="summaryExpense">₺0</b>
-</div>
-
-<div class="row">
-<span>Net</span>
-<b id="summaryNet">₺0</b>
-</div>
-
-</div>
-
-
-<div class="card">
+<section class="card">
 
 <h2>💳 Hesaplar</h2>
 
 <div id="accounts">
-<div class="help">
-Mevcut hesaplarınız burada görünecek.
+<div class="muted">
+Henüz hesap yok.
 </div>
 </div>
 
+<button onclick="openAccount()">
++ Hesap Ekle
+</button>
+
+<button class="dark" onclick="openAccountTransfer()">
+↔ Transfer
+</button>
+
+</section>
+
+
+<section class="card">
+
+<h2>📊 Bu Ay</h2>
+
+<div class="row">
+<span>Gelir</span>
+<b id="monthIncome">₺0</b>
 </div>
 
+<div class="row">
+<span>Gider</span>
+<b id="monthExpense">₺0</b>
+</div>
 
-<div class="card">
+<div class="row">
+<span>Tasarruf</span>
+<b id="monthSaving">₺0</b>
+</div>
+
+</section>
+
+
+<section class="card">
 
 <h2>📦 Zarflar</h2>
 
 <div id="envelopes">
-<div class="help">
-Mevcut zarflarınız burada görünecek.
+<div class="muted">
+Mevcut zarflar burada görünecek.
 </div>
 </div>
 
-</div>
+</section>
 
 
-<div class="card">
+<section class="card">
 
 <h2>🧾 Son İşlemler</h2>
 
 <div id="transactions">
-<div class="help">
-Mevcut işlemleriniz burada görünecek.
+<div class="muted">
+Henüz işlem yok.
 </div>
+</div>
+
+<button onclick="openTransaction()">
++ İşlem Ekle
+</button>
+
+</section>
+
+</div>
+
+</div>
+
+
+<!-- ACCOUNT MODAL -->
+
+<div class="modal" id="accountModal">
+
+<div class="sheet">
+
+<h2>💳 Hesap Ekle</h2>
+
+<input
+id="accountName"
+placeholder="Hesap adı">
+
+<select id="accountType">
+
+<option value="asset">🏦 Banka</option>
+<option value="cash">💵 Nakit</option>
+<option value="credit">💳 Kredi Kartı</option>
+<option value="investment">📈 Yatırım</option>
+<option value="debt">🧾 Borç</option>
+<option value="other">📋 Diğer</option>
+
+</select>
+
+<input
+id="accountBalance"
+type="number"
+inputmode="decimal"
+placeholder="Mevcut bakiye">
+
+<div class="actions">
+
+<button class="dark"
+onclick="closeModals()">
+İptal
+</button>
+
+<button onclick="addAccount()">
+Kaydet
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- ACCOUNT TRANSFER -->
+
+<div class="modal" id="accountTransferModal">
+
+<div class="sheet">
+
+<h2>↔ Hesap Transferi</h2>
+
+<label>Kaynak hesap</label>
+
+<select id="transferFrom"></select>
+
+<label>Hedef hesap</label>
+
+<select id="transferTo"></select>
+
+<input
+id="accountTransferAmount"
+type="number"
+inputmode="decimal"
+placeholder="Transfer tutarı">
+
+<div class="actions">
+
+<button class="dark"
+onclick="closeModals()">
+İptal
+</button>
+
+<button onclick="transferAccount()">
+Transfer Et
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- TRANSACTION -->
+
+<div class="modal" id="transactionModal">
+
+<div class="sheet">
+
+<h2>🧾 Yeni İşlem</h2>
+
+<select id="transactionType">
+
+<option value="expense">
+💸 Gider
+</option>
+
+<option value="income">
+💰 Gelir
+</option>
+
+</select>
+
+<input
+id="transactionAmount"
+type="number"
+inputmode="decimal"
+placeholder="Tutar">
+
+<input
+id="transactionDescription"
+placeholder="Açıklama">
+
+<select id="transactionCategory">
+
+<option>Market</option>
+<option>Faturalar</option>
+<option>Ulaşım</option>
+<option>Yemek</option>
+<option>Eğlence</option>
+<option>Sağlık</option>
+<option>Alışveriş</option>
+<option>Maaş</option>
+<option>Diğer</option>
+
+</select>
+
+<select id="transactionAccount">
+<option value="">
+Hesap seç
+</option>
+</select>
+
+<select id="transactionEnvelope">
+<option value="">
+Zarf seç
+</option>
+</select>
+
+<div class="actions">
+
+<button class="dark"
+onclick="closeModals()">
+İptal
+</button>
+
+<button onclick="addTransaction()">
+Kaydet
+</button>
+
 </div>
 
 </div>
@@ -290,10 +533,7 @@ const money = n =>
 new Intl.NumberFormat("tr-TR",{
 style:"currency",
 currency:"TRY"
-}).format(n);
-
-
-let data = loadData();
+}).format(Number(n)||0);
 
 
 function loadData(){
@@ -305,30 +545,26 @@ localStorage.getItem("finpalData");
 
 if(saved){
 
-const parsed =
-JSON.parse(saved);
+const parsed=JSON.parse(saved);
 
 return {
 
-accounts:
-Array.isArray(parsed.accounts)
+accounts:Array.isArray(parsed.accounts)
 ?parsed.accounts:[],
 
-transactions:
-Array.isArray(parsed.transactions)
+transactions:Array.isArray(parsed.transactions)
 ?parsed.transactions:[],
 
-envelopes:
-Array.isArray(parsed.envelopes)
+envelopes:Array.isArray(parsed.envelopes)
 ?parsed.envelopes:[]
 
 };
 
 }
 
-}catch(error){
+}catch(e){
 
-console.error(error);
+console.error(e);
 
 }
 
@@ -341,11 +577,48 @@ envelopes:[]
 }
 
 
-function saveData(){
+let data=loadData();
+
+
+function save(){
 
 localStorage.setItem(
 "finpalData",
 JSON.stringify(data)
+);
+
+render();
+
+}
+
+
+function accountIsLiability(account){
+
+return account.type==="credit" ||
+account.type==="debt";
+
+}
+
+
+function calculateAssets(){
+
+return data.accounts
+.filter(x=>!accountIsLiability(x))
+.reduce(
+(sum,x)=>sum+Number(x.balance||0),
+0
+);
+
+}
+
+
+function calculateLiabilities(){
+
+return data.accounts
+.filter(x=>accountIsLiability(x))
+.reduce(
+(sum,x)=>sum+Math.abs(Number(x.balance||0)),
+0
 );
 
 }
@@ -353,154 +626,291 @@ JSON.stringify(data)
 
 function render(){
 
-let income =
-data.transactions
-.filter(x=>x.type==="income")
-.reduce(
-(a,x)=>a+Number(x.amount||0),
-0
-);
+const assets=calculateAssets();
+
+const liabilities=calculateLiabilities();
+
+const netWorth=
+assets-liabilities;
 
 
-let expense =
-data.transactions
-.filter(x=>x.type==="expense")
-.reduce(
-(a,x)=>a+Number(x.amount||0),
-0
-);
+const now=new Date();
+
+const month=
+now.getMonth();
+
+const year=
+now.getFullYear();
 
 
-let balance =
-data.accounts
-.reduce(
-(a,x)=>a+Number(x.balance||0),
-0
-);
+let income=0;
+let expense=0;
 
 
-document.getElementById("balance")
-.innerText=money(balance);
+data.transactions.forEach(x=>{
 
-document.getElementById("income")
+const d=new Date(x.date);
+
+if(
+d.getMonth()===month &&
+d.getFullYear()===year
+){
+
+if(x.type==="income")
+income+=Number(x.amount||0);
+
+if(x.type==="expense")
+expense+=Number(x.amount||0);
+
+}
+
+});
+
+
+document.getElementById("assets")
+.innerText=money(assets);
+
+document.getElementById("liabilities")
+.innerText=money(liabilities);
+
+document.getElementById("netWorth")
+.innerText=money(netWorth);
+
+document.getElementById("monthIncome")
 .innerText=money(income);
 
-document.getElementById("expense")
+document.getElementById("monthExpense")
 .innerText=money(expense);
 
-document.getElementById("net")
-.innerText=
-money(income-expense);
+document.getElementById("monthSaving")
+.innerText=money(income-expense);
 
-document.getElementById("summaryIncome")
-.innerText=money(income);
-
-document.getElementById("summaryExpense")
-.innerText=money(expense);
-
-document.getElementById("summaryNet")
-.innerText=
-money(income-expense);
+document.getElementById("monthlyNet")
+.innerText=money(income-expense);
 
 
 renderAccounts();
+
 renderEnvelopes();
+
 renderTransactions();
+
+updateSelects();
 
 }
 
 
 function renderAccounts(){
 
-const el =
+const el=
 document.getElementById("accounts");
+
 
 if(!data.accounts.length){
 
 el.innerHTML=
-'<div class="help">Henüz hesap yok.</div>';
+'<div class="muted">Henüz hesap yok.</div>';
 
 return;
 
 }
 
-el.innerHTML =
-data.accounts.map(x=>`
 
-<div class="row">
+el.innerHTML=
+data.accounts.map((x,i)=>{
 
-<span>
+const liability=
+accountIsLiability(x);
 
-<strong>${escapeHTML(x.name||"Hesap")}</strong>
+const value=
+Number(x.balance||0);
+
+return`
+
+<div class="account">
+
+<div class="account-top">
+
+<div>
+
+<strong>
+${escapeHTML(x.name||"Hesap")}
+</strong>
 
 <br>
 
 <small>
-${escapeHTML(x.type||"")}
+${accountTypeName(x.type)}
 </small>
-
-</span>
-
-<b>
-${money(Number(x.balance||0))}
-</b>
 
 </div>
 
-`).join("");
+<strong class="${liability?"negative":"positive"}">
+
+${money(value)}
+
+</strong>
+
+</div>
+
+
+<div class="account-actions">
+
+<button
+class="small"
+onclick="editAccount(${i})">
+
+✏️ Düzenle
+
+</button>
+
+<button
+class="small danger"
+onclick="deleteAccount(${i})">
+
+🗑️ Sil
+
+</button>
+
+</div>
+
+</div>
+
+`;
+
+}).join("");
+
+}
+
+
+function accountTypeName(type){
+
+const names={
+
+asset:"Banka",
+
+cash:"Nakit",
+
+credit:"Kredi Kartı",
+
+investment:"Yatırım",
+
+debt:"Borç",
+
+other:"Diğer"
+
+};
+
+return names[type]||"Diğer";
 
 }
 
 
 function renderEnvelopes(){
 
-const el =
+const el=
 document.getElementById("envelopes");
+
 
 if(!data.envelopes.length){
 
 el.innerHTML=
-'<div class="help">Henüz zarf yok.</div>';
+'<div class="muted">Henüz zarf yok.</div>';
 
 return;
 
 }
 
-el.innerHTML =
-data.envelopes.map(x=>`
+
+el.innerHTML=
+data.envelopes.map(x=>{
+
+const budget=
+Number(x.budget||0);
+
+const spent=
+Number(x.spent||0);
+
+const remaining=
+budget-spent;
+
+const percent=
+budget>0
+?Math.min(
+Math.max((spent/budget)*100,0),
+100
+)
+:0;
+
+
+return`
+
+<div>
 
 <div class="row">
 
 <span>
-<strong>${escapeHTML(x.name||"Zarf")}</strong>
+<strong>
+${escapeHTML(x.name||"Zarf")}
+</strong>
+
+<br>
+
+<small>
+Harcanan:
+${money(spent)}
+</small>
+
 </span>
 
-<b>
-${money(Number(x.budget||0))}
-</b>
+<strong>
+${money(remaining)}
+</strong>
 
 </div>
 
-`).join("");
+<div style="
+height:7px;
+background:#eee;
+border-radius:20px;
+overflow:hidden;
+margin:6px 0 10px">
+
+<div style="
+height:100%;
+width:${percent}%;
+background:#f07818;
+border-radius:20px">
+</div>
+
+</div>
+
+</div>
+
+`;
+
+}).join("");
 
 }
 
 
 function renderTransactions(){
 
-const el =
+const el=
 document.getElementById("transactions");
+
 
 if(!data.transactions.length){
 
 el.innerHTML=
-'<div class="help">Henüz işlem yok.</div>';
+'<div class="muted">Henüz işlem yok.</div>';
 
 return;
 
 }
 
-el.innerHTML =
+
+el.innerHTML=
 data.transactions
 .slice()
 .reverse()
@@ -527,14 +937,491 @@ ${escapeHTML(x.category||"")}
 
 </span>
 
-<b>
+<strong class="${
+x.type==="income"
+?"positive"
+:"negative"
+}">
+
 ${x.type==="income"?"+":"-"}
-${money(Number(x.amount||0))}
-</b>
+${money(x.amount)}
+
+</strong>
 
 </div>
 
 `).join("");
+
+}
+
+
+function updateSelects(){
+
+const accountOptions=
+data.accounts.map(x=>
+`<option value="${x.id}">
+${escapeHTML(x.name)}
+</option>`
+).join("");
+
+
+document.getElementById(
+"transactionAccount"
+).innerHTML=
+'<option value="">Hesap seç</option>'+
+accountOptions;
+
+
+document.getElementById(
+"transferFrom"
+).innerHTML=
+accountOptions;
+
+
+document.getElementById(
+"transferTo"
+).innerHTML=
+accountOptions;
+
+
+const envelopeOptions=
+data.envelopes.map(x=>
+`<option value="${x.id}">
+${escapeHTML(x.name)}
+</option>`
+).join("");
+
+
+document.getElementById(
+"transactionEnvelope"
+).innerHTML=
+'<option value="">Zarf seç</option>'+
+envelopeOptions;
+
+}
+
+
+function addAccount(){
+
+const name=
+document.getElementById(
+"accountName"
+).value.trim();
+
+
+const type=
+document.getElementById(
+"accountType"
+).value;
+
+
+const balance=
+parseFloat(
+document.getElementById(
+"accountBalance"
+).value
+)||0;
+
+
+if(!name){
+
+alert("Hesap adı gir.");
+
+return;
+
+}
+
+
+data.accounts.push({
+
+id:Date.now(),
+
+name,
+
+type,
+
+balance
+
+});
+
+
+save();
+
+document.getElementById(
+"accountName"
+).value="";
+
+document.getElementById(
+"accountBalance"
+).value="";
+
+closeModals();
+
+}
+
+
+function editAccount(index){
+
+const account=data.accounts[index];
+
+
+const name=prompt(
+"Hesap adı:",
+account.name
+);
+
+
+if(name===null)return;
+
+
+const balance=parseFloat(
+prompt(
+"Mevcut bakiye:",
+account.balance
+)
+);
+
+
+if(isNaN(balance)){
+
+alert("Geçerli bakiye gir.");
+
+return;
+
+}
+
+
+account.name=name;
+
+account.balance=balance;
+
+
+save();
+
+}
+
+
+function deleteAccount(index){
+
+if(
+!confirm(
+"Bu hesabı silmek istediğine emin misin?"
+)
+)return;
+
+
+data.accounts.splice(index,1);
+
+save();
+
+}
+
+
+function transferAccount(){
+
+const fromId=
+Number(
+document.getElementById(
+"transferFrom"
+).value
+);
+
+
+const toId=
+Number(
+document.getElementById(
+"transferTo"
+).value
+);
+
+
+const amount=
+parseFloat(
+document.getElementById(
+"accountTransferAmount"
+).value
+);
+
+
+if(fromId===toId){
+
+alert(
+"Kaynak ve hedef hesap aynı olamaz."
+);
+
+return;
+
+}
+
+
+if(!amount||amount<=0){
+
+alert(
+"Geçerli bir tutar gir."
+);
+
+return;
+
+}
+
+
+const from=
+data.accounts.find(
+x=>x.id===fromId
+);
+
+
+const to=
+data.accounts.find(
+x=>x.id===toId
+);
+
+
+if(!from||!to)return;
+
+
+if(accountIsLiability(from)){
+
+from.balance+=amount;
+
+}else{
+
+from.balance-=amount;
+
+}
+
+
+if(accountIsLiability(to)){
+
+to.balance-=amount;
+
+}else{
+
+to.balance+=amount;
+
+}
+
+
+data.transactions.push({
+
+id:Date.now(),
+
+type:"transfer",
+
+amount,
+
+description:
+from.name+
+" → "+
+to.name,
+
+category:"Hesap Transferi",
+
+accountId:from.id,
+
+targetAccountId:to.id,
+
+date:new Date().toISOString()
+
+});
+
+
+save();
+
+document.getElementById(
+"accountTransferAmount"
+).value="";
+
+closeModals();
+
+}
+
+
+function addTransaction(){
+
+const type=
+document.getElementById(
+"transactionType"
+).value;
+
+
+const amount=
+parseFloat(
+document.getElementById(
+"transactionAmount"
+).value
+);
+
+
+const description=
+document.getElementById(
+"transactionDescription"
+).value.trim();
+
+
+const category=
+document.getElementById(
+"transactionCategory"
+).value;
+
+
+const accountId=
+document.getElementById(
+"transactionAccount"
+).value;
+
+
+const envelopeId=
+document.getElementById(
+"transactionEnvelope"
+).value;
+
+
+if(!amount||amount<=0){
+
+alert("Geçerli bir tutar gir.");
+
+return;
+
+}
+
+
+const transaction={
+
+id:Date.now(),
+
+type,
+
+amount,
+
+description,
+
+category,
+
+accountId,
+
+envelopeId,
+
+date:new Date().toISOString()
+
+};
+
+
+data.transactions.push(transaction);
+
+
+if(accountId){
+
+const account=
+data.accounts.find(
+x=>x.id==accountId
+);
+
+
+if(account){
+
+if(accountIsLiability(account)){
+
+if(type==="expense")
+account.balance+=amount;
+
+else
+account.balance-=amount;
+
+}else{
+
+if(type==="income")
+account.balance+=amount;
+
+else
+account.balance-=amount;
+
+}
+
+}
+
+}
+
+
+if(
+type==="expense" &&
+envelopeId
+){
+
+const envelope=
+data.envelopes.find(
+x=>x.id==envelopeId
+);
+
+if(envelope){
+
+envelope.spent=
+Number(envelope.spent||0)+amount;
+
+}
+
+}
+
+
+save();
+
+document.getElementById(
+"transactionAmount"
+).value="";
+
+document.getElementById(
+"transactionDescription"
+).value="";
+
+closeModals();
+
+}
+
+
+function openAccount(){
+
+document.getElementById(
+"accountModal"
+).classList.add("active");
+
+}
+
+
+function openAccountTransfer(){
+
+if(data.accounts.length<2){
+
+alert(
+"Transfer için en az iki hesap gerekli."
+);
+
+return;
+
+}
+
+document.getElementById(
+"accountTransferModal"
+).classList.add("active");
+
+}
+
+
+function openTransaction(){
+
+document.getElementById(
+"transactionModal"
+).classList.add("active");
+
+}
+
+
+function closeModals(){
+
+document
+.querySelectorAll(".modal")
+.forEach(x=>
+x.classList.remove("active")
+);
 
 }
 
@@ -547,155 +1434,6 @@ return String(value)
 .replaceAll(">","&gt;")
 .replaceAll('"',"&quot;")
 .replaceAll("'","&#039;");
-
-}
-
-
-function backupData(){
-
-saveData();
-
-const backup = {
-
-app:"FinPal",
-
-version:4,
-
-date:new Date().toISOString(),
-
-data:data
-
-};
-
-
-const blob =
-new Blob(
-[JSON.stringify(backup,null,2)],
-{type:"application/json"}
-);
-
-
-const url =
-URL.createObjectURL(blob);
-
-
-const a =
-document.createElement("a");
-
-a.href=url;
-
-a.download=
-"FinPal-Yedek-"+
-new Date()
-.toISOString()
-.slice(0,10)+
-".json";
-
-document.body.appendChild(a);
-
-a.click();
-
-a.remove();
-
-URL.revokeObjectURL(url);
-
-
-alert(
-"FinPal verilerin yedeklendi."
-);
-
-}
-
-
-function restoreData(event){
-
-const file =
-event.target.files[0];
-
-if(!file)return;
-
-
-const reader =
-new FileReader();
-
-
-reader.onload=function(){
-
-try{
-
-const backup =
-JSON.parse(reader.result);
-
-
-if(
-!backup.data||
-typeof backup.data!=="object"
-){
-
-throw new Error(
-"Geçersiz FinPal yedeği."
-);
-
-}
-
-
-if(
-!Array.isArray(backup.data.accounts)||
-!Array.isArray(backup.data.transactions)||
-!Array.isArray(backup.data.envelopes)
-){
-
-throw new Error(
-"Yedek dosyası tanınamadı."
-);
-
-}
-
-
-if(
-!confirm(
-"Mevcut FinPal verileri yedekteki verilerle değiştirilecek. Devam edilsin mi?"
-)
-){
-
-return;
-
-}
-
-
-data={
-
-accounts:backup.data.accounts,
-
-transactions:backup.data.transactions,
-
-envelopes:backup.data.envelopes
-
-};
-
-
-saveData();
-
-render();
-
-
-alert(
-"FinPal yedeği başarıyla geri yüklendi."
-);
-
-
-}catch(error){
-
-alert(
-"Geri yükleme başarısız: "+
-error.message
-);
-
-}
-
-};
-
-reader.readAsText(file);
 
 }
 
