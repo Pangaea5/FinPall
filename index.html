@@ -1690,9 +1690,20 @@ const linkedEnvelope=data.envelopes
                         <br>
 
                         <small>
-                            Planlanan:
-                            ${money(budget.amount)}
-                        </small>
+    Planlanan:
+    ${money(budget.amount)}
+</small>
+
+<br>
+
+<small>
+    📦 Zarf:
+    ${
+        linkedEnvelope
+        ? escapeHTML(linkedEnvelope.name)
+        : "Bağlı değil"
+    }
+</small>
 
                     </div>
 
