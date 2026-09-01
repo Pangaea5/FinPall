@@ -1252,13 +1252,7 @@ closeModals();
 
 
 function addTransaction(){
-function openAccount(){
 
-document.getElementById(
-"accountModal"
-).classList.add("active");
-
-}
     const type=
         document.getElementById(
             "transactionType"
@@ -1301,9 +1295,7 @@ document.getElementById(
     }
 
 
-    /*
-       Bütçeye bağlı zarfı otomatik bul
-    */
+    /* Bütçeye bağlı zarfı otomatik bul */
 
     if(
         type==="expense" &&
@@ -1319,7 +1311,6 @@ document.getElementById(
                     x.envelopeId
             );
 
-
         if(budget){
 
             envelopeId=
@@ -1330,6 +1321,27 @@ document.getElementById(
     }
 
 
+    /* İşlemi oluştur */
+
+    const transaction={
+
+        id:Date.now(),
+
+        type,
+
+        amount,
+
+        description,
+
+        category,
+
+        accountId,
+
+        envelopeId,
+
+        date:new Date().toISOString()
+
+    };
 
 
     data.transactions.push(
@@ -1337,9 +1349,7 @@ document.getElementById(
     );
 
 
-    /*
-       Hesap bakiyesini güncelle
-    */
+    /* Hesap bakiyesini güncelle */
 
     if(accountId){
 
@@ -1347,7 +1357,6 @@ document.getElementById(
             data.accounts.find(
                 x=>x.id==accountId
             );
-
 
         if(account){
 
@@ -1376,9 +1385,7 @@ document.getElementById(
     }
 
 
-    /*
-       Gideri zarfa işle
-    */
+    /* Gideri zarfa işle */
 
     if(
         type==="expense" &&
@@ -1389,7 +1396,6 @@ document.getElementById(
             data.envelopes.find(
                 x=>String(x.id)===String(envelopeId)
             );
-
 
         if(envelope){
 
@@ -1419,96 +1425,7 @@ document.getElementById(
 }
 
 
-const transaction={
 
-id:Date.now(),
-
-type,
-
-amount,
-
-description,
-
-category,
-
-accountId,
-
-envelopeId,
-
-date:new Date().toISOString()
-
-};
-
-
-data.transactions.push(transaction);
-
-
-if(accountId){
-
-const account=
-data.accounts.find(
-x=>x.id==accountId
-);
-
-
-if(account){
-
-if(accountIsLiability(account)){
-
-if(type==="expense")
-account.balance+=amount;
-
-else
-account.balance-=amount;
-
-}else{
-
-if(type==="income")
-account.balance+=amount;
-
-else
-account.balance-=amount;
-
-}
-
-}
-
-}
-
-
-if(
-type==="expense" &&
-envelopeId
-){
-
-const envelope=
-data.envelopes.find(
-x=>x.id==envelopeId
-);
-
-if(envelope){
-
-envelope.spent=
-Number(envelope.spent||0)+amount;
-
-}
-
-}
-
-
-save();
-
-document.getElementById(
-"transactionAmount"
-).value="";
-
-document.getElementById(
-"transactionDescription"
-).value="";
-
-closeModals();
-
-}
 
 
 function openAccount(){
