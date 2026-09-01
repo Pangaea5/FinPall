@@ -1663,7 +1663,11 @@ function renderBudgets(){
 
             const status=
                 budgetStatus(percent);
-
+const linkedEnvelope=data.envelopes
+    ? data.envelopes.find(
+        e=>String(e.id)===String(budget.envelopeId)
+      )
+    : null;
             const realIndex=
                 data.budgets.indexOf(
                     budget
