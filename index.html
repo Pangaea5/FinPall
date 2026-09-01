@@ -1451,7 +1451,372 @@ year:"numeric"
 
 
 render();
+/* =========================
+   FINPAL V5 - BUTCE MODULU
+   ========================= */
 
+if(!data.budgets){
+    data.budgets=[];
+}
+
+function currentMonth(){
+    const d=new Date();
+    return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
+}
+
+function getBudgetSpent(category,month){
+    return data.transactions
+        .filter(x=>{
+            if(x.type!=="expense") return false;
+            if(x.category!==category) return false;
+
+            const d=new Date(x.date);
+            const m=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
+
+            return m===month;
+        })
+        .reduce((sum,x)=>sum+Number(x.amount||0),0);
+}
+
+function budgetStatus(percent){
+
+    if(percent>=100){
+        return {
+            text:"Bütçe aşıldı",
+            className:"negative"
+        };
+    }
+
+    if(percent>=75){
+        return {
+            text:"Dikkat",
+            className:"negative"
+        };
+    }
+
+    return {
+        text:"Normal",
+        className:"positive"
+    };
+}
+
+function addBudget(){
+
+    const category=
+        prompt(
+            "Bütçe kategorisi:\n\nÖrn: Market"
+        );
+
+    if(!category) return;
+
+    const amount=
+        parseFloat(
+            prompt("Aylık bütçe tutarı:")
+        );
+
+    if(!amount || amount<=0){
+        alert("Geçerli bir tutar gir.");
+        return;
+    }
+
+    const month=currentMonth();
+
+    const existing=
+        data.budgets.find(
+            x=>
+                x.category===category &&
+                x.month===month
+        );
+
+    if(existing){
+
+        existing.amount=amount;
+
+    }else{
+
+        data.budgets.push({
+
+            id:Date.now(),
+
+            category:category,
+
+            amount:amount,
+
+            month:month
+
+        });
+
+    }
+
+    save();
+
+    renderBudgets();
+
+}
+
+function deleteBudget(index){
+
+    if(
+        !confirm(
+            "Bu bütçeyi silmek istediğine emin misin?"
+        )
+    ) return;
+
+    data.budgets.splice(index,1);
+
+    save();
+
+    renderBudgets();
+
+}
+
+function editBudget(index){
+
+    const budget=
+        data.budgets[index];
+
+    const amount=
+        parseFloat(
+            prompt(
+                "Yeni bütçe tutarı:",
+                budget.amount
+            )
+        );
+
+    if(!amount || amount<=0){
+        alert("Geçerli bir tutar gir.");
+        return;
+    }
+
+    budget.amount=amount;
+
+    save();
+
+    renderBudgets();
+
+}
+
+function renderBudgets(){
+
+    const container=
+        document.getElementById(
+            "budgetList"
+        );
+
+    if(!container) return;
+
+    const month=currentMonth();
+
+    const budgets=
+        data.budgets.filter(
+            x=>x.month===month
+        );
+
+    if(!budgets.length){
+
+        container.innerHTML=`
+            <div class="muted">
+                Bu ay henüz bütçe oluşturulmadı.
+            </div>
+        `;
+
+        return;
+    }
+
+    container.innerHTML=
+        budgets.map((budget,index)=>{
+
+            const spent=
+                getBudgetSpent(
+                    budget.category,
+                    month
+                );
+
+            const remaining=
+                Number(budget.amount)-spent;
+
+            const percent=
+                Number(budget.amount)>0
+                ?(spent/Number(budget.amount))*100
+                :0;
+
+            const safePercent=
+                Math.min(
+                    Math.max(percent,0),
+                    100
+                );
+
+            const status=
+                budgetStatus(percent);
+
+            const realIndex=
+                data.budgets.indexOf(
+                    budget
+                );
+
+            return`
+
+            <div class="account">
+
+                <div class="account-top">
+
+                    <div>
+
+                        <strong>
+                            ${escapeHTML(
+                                budget.category
+                            )}
+                        </strong>
+
+                        <br>
+
+                        <small>
+                            Planlanan:
+                            ${money(budget.amount)}
+                        </small>
+
+                    </div>
+
+                    <strong class="${
+                        remaining<0
+                        ?"negative"
+                        :"positive"
+                    }">
+
+                        ${money(remaining)}
+
+                    </strong>
+
+                </div>
+
+                <div style="
+                    height:8px;
+                    background:#eee;
+                    border-radius:20px;
+                    overflow:hidden;
+                    margin:9px 0;
+                ">
+
+                    <div style="
+                        height:100%;
+                        width:${safePercent}%;
+                        background:#f07818;
+                        border-radius:20px;
+                    "></div>
+
+                </div>
+
+                <div class="row">
+
+                    <small>
+                        Harcanan:
+                        ${money(spent)}
+                    </small>
+
+                    <small class="${
+                        status.className
+                    }">
+
+                        ${Math.round(percent)}%
+                        ·
+                        ${status.text}
+
+                    </small>
+
+                </div>
+
+                <div class="account-actions">
+
+                    <button
+                        class="small"
+                        onclick="editBudget(${realIndex})">
+
+                        ✏️ Düzenle
+
+                    </button>
+
+                    <button
+                        class="small danger"
+                        onclick="deleteBudget(${realIndex})">
+
+                        🗑️ Sil
+
+                    </button>
+
+                </div>
+
+            </div>
+
+            `;
+
+        }).join("");
+
+}
+
+
+/* Bütçe kartını ana sayfaya ekle */
+
+function createBudgetCard(){
+
+    if(
+        document.getElementById(
+            "budgetCard"
+        )
+    ) return;
+
+    const grid=
+        document.querySelector(".grid");
+
+    if(!grid) return;
+
+    const card=
+        document.createElement("section");
+
+    card.className="card";
+
+    card.id="budgetCard";
+
+    card.innerHTML=`
+
+        <h2>📊 Aylık Bütçe</h2>
+
+        <div id="budgetList">
+
+            <div class="muted">
+                Bu ay henüz bütçe oluşturulmadı.
+            </div>
+
+        </div>
+
+        <button onclick="addBudget()">
+            + Bütçe Ekle
+        </button>
+
+    `;
+
+    grid.insertBefore(
+        card,
+        grid.firstElementChild
+    );
+
+    renderBudgets();
+
+}
+
+
+/* Ana render fonksiyonuna bağla */
+
+const oldRender=render;
+
+render=function(){
+
+    oldRender();
+
+    createBudgetCard();
+
+    renderBudgets();
+
+};
 </script>
 
 </body>
