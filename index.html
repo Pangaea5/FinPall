@@ -341,7 +341,17 @@ Henüz hesap yok.
 Mevcut zarflar burada görünecek.
 </div>
 </div>
+<div style="margin-top:12px">
 
+<button onclick="openEnvelope()">
++ Zarf Ekle
+</button>
+
+<button class="dark" onclick="openTransfer()">
+↔ Zarf Transferi
+</button>
+
+</div>
 </section>
 
 
@@ -1817,6 +1827,142 @@ render=function(){
     renderBudgets();
 
 };
+function openEnvelope(){
+
+    const name=prompt(
+        "Zarf adı:\n\nÖrn: Market"
+    );
+
+    if(!name) return;
+
+    const budget=parseFloat(
+        prompt("Zarf bütçesi:")
+    );
+
+    if(!budget || budget<=0){
+
+        alert("Geçerli bir bütçe gir.");
+
+        return;
+    }
+
+    if(!data.envelopes){
+        data.envelopes=[];
+    }
+
+    data.envelopes.push({
+
+        id:Date.now(),
+
+        name:name,
+
+        budget:budget,
+
+        spent:0
+
+    });
+
+    save();
+
+    render();
+
+}
+
+
+function openTransfer(){
+
+    if(!data.envelopes ||
+       data.envelopes.length<2){
+
+        alert(
+            "Zarf transferi için en az 2 zarf gerekli."
+        );
+
+        return;
+    }
+
+    const names=
+        data.envelopes
+        .map(
+            (x,i)=>
+            (i+1)+". "+x.name
+        )
+        .join("\n");
+
+    const fromNumber=
+        parseInt(
+            prompt(
+                "Kaynak zarfı seç:\n\n"+
+                names
+            )
+        );
+
+    const toNumber=
+        parseInt(
+            prompt(
+                "Hedef zarfı seç:\n\n"+
+                names
+            )
+        );
+
+    if(
+        !fromNumber ||
+        !toNumber ||
+        fromNumber===toNumber
+    ){
+
+        alert(
+            "Geçerli ve farklı iki zarf seç."
+        );
+
+        return;
+    }
+
+    const amount=parseFloat(
+        prompt("Transfer tutarı:")
+    );
+
+    if(!amount || amount<=0){
+
+        alert(
+            "Geçerli bir tutar gir."
+        );
+
+        return;
+    }
+
+    const from=
+        data.envelopes[fromNumber-1];
+
+    const to=
+        data.envelopes[toNumber-1];
+
+    const available=
+        Number(from.budget||0)-
+        Number(from.spent||0);
+
+    if(amount>available){
+
+        alert(
+            "Kaynak zarfta yeterli para yok."
+        );
+
+        return;
+    }
+
+    from.budget-=amount;
+
+    to.budget+=amount;
+
+    save();
+
+    render();
+
+    alert(
+        "Zarf transferi tamamlandı."
+    );
+
+}
 </script>
 
 </body>
