@@ -1,244 +1,318 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
+
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#f07818">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="FinPal">
-<title>FinPal v4</title>
+
+<meta
+    name="viewport"
+    content="width=device-width,initial-scale=1,viewport-fit=cover"
+>
+
+<meta
+    name="theme-color"
+    content="#f07818"
+>
+
+<meta
+    name="apple-mobile-web-app-capable"
+    content="yes"
+>
+
+<meta
+    name="apple-mobile-web-app-title"
+    content="FinPal"
+>
+
+<title>FinPal</title>
 
 <style>
-*{box-sizing:border-box}
+
+*{
+    box-sizing:border-box;
+}
 
 body{
-margin:0;
-background:#f5f6f7;
-color:#17231e;
-font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif
+    margin:0;
+    background:#f5f6f7;
+    color:#17231e;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
 }
 
 .app{
-max-width:900px;
-margin:auto;
-padding:18px 15px 100px
+    max-width:900px;
+    margin:auto;
+    padding:18px 15px 100px;
 }
 
 header{
-display:flex;
-justify-content:space-between;
-align-items:center;
-margin-bottom:18px
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:18px;
 }
 
 .logo{
-font-size:30px;
-font-weight:900
+    font-size:30px;
+    font-weight:900;
 }
 
 .logo span{
-color:#f07818
+    color:#f07818;
 }
 
 .date{
-font-size:12px;
-color:#777
+    font-size:12px;
+    color:#777;
 }
 
 .hero{
-background:linear-gradient(135deg,#b94708,#f07818);
-color:white;
-padding:22px;
-border-radius:24px;
-margin-bottom:15px
+    background:linear-gradient(135deg,#b94708,#f07818);
+    color:white;
+    padding:22px;
+    border-radius:24px;
+    margin-bottom:15px;
 }
 
 .hero small{
-opacity:.85
+    opacity:.85;
 }
 
 .balance{
-font-size:38px;
-font-weight:900;
-margin:7px 0 18px
+    font-size:38px;
+    font-weight:900;
+    margin:7px 0 18px;
 }
 
 .stats{
-display:grid;
-grid-template-columns:repeat(3,1fr);
-gap:8px
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:8px;
 }
 
 .stat{
-background:#ffffff28;
-padding:11px;
-border-radius:13px
+    background:#ffffff28;
+    padding:11px;
+    border-radius:13px;
 }
 
 .stat b{
-display:block;
-margin-top:4px
+    display:block;
+    margin-top:4px;
 }
 
 .grid{
-display:grid;
-grid-template-columns:repeat(2,1fr);
-gap:14px
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:14px;
 }
 
 .card{
-background:#fff;
-border:1px solid #e4e8e5;
-border-radius:18px;
-padding:17px;
-box-shadow:0 6px 20px #00000009
+    background:#fff;
+    border:1px solid #e4e8e5;
+    border-radius:18px;
+    padding:17px;
+    box-shadow:0 6px 20px #00000009;
 }
 
 .card h2{
-font-size:17px;
-margin:0 0 13px
+    font-size:17px;
+    margin:0 0 13px;
 }
 
 .row{
-display:flex;
-justify-content:space-between;
-align-items:center;
-padding:11px 0;
-border-bottom:1px solid #eee
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:11px 0;
+    border-bottom:1px solid #eee;
 }
 
 .row:last-child{
-border-bottom:0
+    border-bottom:0;
 }
 
 .muted{
-font-size:13px;
-color:#777
+    font-size:13px;
+    color:#777;
 }
 
 .account{
-padding:12px 0;
-border-bottom:1px solid #eee
+    padding:12px 0;
+    border-bottom:1px solid #eee;
 }
 
 .account:last-child{
-border-bottom:0
+    border-bottom:0;
 }
 
 .account-top{
-display:flex;
-justify-content:space-between
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
 }
 
 .account-actions{
-margin-top:8px;
-display:flex;
-gap:6px
+    margin-top:8px;
+    display:flex;
+    gap:6px;
 }
 
 button{
-border:0;
-border-radius:12px;
-padding:11px 14px;
-background:#f07818;
-color:white;
-font-weight:750;
-font-size:14px
+    border:0;
+    border-radius:12px;
+    padding:11px 14px;
+    background:#f07818;
+    color:white;
+    font-weight:750;
+    font-size:14px;
+    cursor:pointer;
+}
+
+button:active{
+    transform:scale(.98);
 }
 
 .dark{
-background:#18342b
+    background:#18342b;
 }
 
 .danger{
-background:#c43d2f
+    background:#c43d2f;
 }
 
 .small{
-padding:7px 9px;
-font-size:12px
+    padding:7px 9px;
+    font-size:12px;
 }
 
 .positive{
-color:#16824f
+    color:#16824f;
 }
 
 .negative{
-color:#c74624
+    color:#c74624;
 }
 
 .modal{
-display:none;
-position:fixed;
-inset:0;
-background:#0008;
-z-index:20;
-align-items:flex-end
+    display:none;
+    position:fixed;
+    inset:0;
+    background:#0008;
+    z-index:20;
+    align-items:flex-end;
 }
 
 .modal.active{
-display:flex
+    display:flex;
 }
 
 .sheet{
-background:white;
-width:100%;
-max-width:600px;
-margin:auto;
-padding:20px;
-border-radius:24px 24px 0 0;
-max-height:90vh;
-overflow:auto
+    background:white;
+    width:100%;
+    max-width:600px;
+    margin:auto;
+    padding:20px;
+    border-radius:24px 24px 0 0;
+    max-height:90vh;
+    overflow:auto;
 }
 
-input,select{
-width:100%;
-padding:13px;
-margin:7px 0 12px;
-border:1px solid #ddd;
-border-radius:12px;
-font-size:16px;
-background:white
+.sheet h2{
+    margin-top:0;
+}
+
+input,
+select{
+    width:100%;
+    padding:13px;
+    margin:7px 0 12px;
+    border:1px solid #ddd;
+    border-radius:12px;
+    font-size:16px;
+    background:white;
+}
+
+label{
+    font-size:13px;
+    font-weight:600;
 }
 
 .actions{
-display:flex;
-gap:8px
+    display:flex;
+    gap:8px;
 }
 
 .actions button{
-flex:1
+    flex:1;
 }
 
 .bottom{
-position:fixed;
-bottom:0;
-left:0;
-right:0;
-background:white;
-border-top:1px solid #ddd;
-padding:9px;
-display:flex;
-gap:7px;
-z-index:10
+    position:fixed;
+    bottom:0;
+    left:0;
+    right:0;
+    background:white;
+    border-top:1px solid #ddd;
+    padding:9px;
+    display:flex;
+    gap:7px;
+    z-index:10;
 }
 
 .bottom button{
-flex:1
+    flex:1;
+}
+
+.progress{
+    height:8px;
+    background:#eee;
+    border-radius:20px;
+    overflow:hidden;
+    margin:9px 0;
+}
+
+.progress-bar{
+    height:100%;
+    background:#f07818;
+    border-radius:20px;
+}
+
+.transaction-actions{
+    display:flex;
+    gap:5px;
+    justify-content:flex-end;
+    margin-top:6px;
+}
+
+.section-buttons{
+    display:flex;
+    gap:7px;
+    flex-wrap:wrap;
 }
 
 @media(max-width:600px){
 
-.grid{
-grid-template-columns:1fr
+    .grid{
+        grid-template-columns:1fr;
+    }
+
+    .balance{
+        font-size:34px;
+    }
+
+    .stats{
+        gap:6px;
+    }
+
+    .stat{
+        padding:9px;
+    }
+
 }
 
-.balance{
-font-size:34px
-}
-
-}
 </style>
+
 </head>
 
 <body>
@@ -251,34 +325,61 @@ font-size:34px
 Fin<span>Pal</span>
 </div>
 
-<div class="date" id="date"></div>
+<div
+    class="date"
+    id="date"
+></div>
 
 </header>
 
+
+<!-- =========================
+     HERO
+========================= -->
 
 <section class="hero">
 
 <small>Net Varlık</small>
 
-<div class="balance" id="netWorth">
+<div
+    class="balance"
+    id="netWorth"
+>
 ₺0,00
 </div>
 
 <div class="stats">
 
 <div class="stat">
+
 <small>Varlık</small>
-<b id="assets">₺0,00</b>
+
+<b id="assets">
+₺0,00
+</b>
+
 </div>
 
+
 <div class="stat">
+
 <small>Borç</small>
-<b id="liabilities">₺0,00</b>
+
+<b id="liabilities">
+₺0,00
+</b>
+
 </div>
 
+
 <div class="stat">
+
 <small>Bu Ay</small>
-<b id="monthlyNet">₺0,00</b>
+
+<b id="monthlyNet">
+₺0,00
+</b>
+
 </div>
 
 </div>
@@ -286,83 +387,139 @@ Fin<span>Pal</span>
 </section>
 
 
+<!-- =========================
+     ANA GRID
+========================= -->
+
 <div class="grid">
 
+
+<!-- HESAPLAR -->
 
 <section class="card">
 
 <h2>💳 Hesaplar</h2>
 
 <div id="accounts">
+
 <div class="muted">
 Henüz hesap yok.
 </div>
+
 </div>
+
+<div class="section-buttons">
 
 <button onclick="openAccount()">
 + Hesap Ekle
 </button>
 
-<button class="dark" onclick="openAccountTransfer()">
+<button
+    class="dark"
+    onclick="openAccountTransfer()"
+>
 ↔ Transfer
 </button>
 
+</div>
+
 </section>
 
+
+<!-- BU AY -->
 
 <section class="card">
 
 <h2>📊 Bu Ay</h2>
 
 <div class="row">
+
 <span>Gelir</span>
-<b id="monthIncome">₺0</b>
+
+<b
+    id="monthIncome"
+    class="positive"
+>
+₺0
+</b>
+
 </div>
 
+
 <div class="row">
+
 <span>Gider</span>
-<b id="monthExpense">₺0</b>
+
+<b
+    id="monthExpense"
+    class="negative"
+>
+₺0
+</b>
+
 </div>
 
+
 <div class="row">
+
 <span>Tasarruf</span>
-<b id="monthSaving">₺0</b>
+
+<b id="monthSaving">
+₺0
+</b>
+
 </div>
 
 </section>
 
+
+<!-- ZARFLAR -->
 
 <section class="card">
 
 <h2>📦 Zarflar</h2>
 
 <div id="envelopes">
+
 <div class="muted">
-Mevcut zarflar burada görünecek.
+Henüz zarf yok.
 </div>
+
 </div>
-<div style="margin-top:12px">
+
+<div
+    class="section-buttons"
+    style="margin-top:12px"
+>
 
 <button onclick="openEnvelope()">
 + Zarf Ekle
 </button>
 
-<button class="dark" onclick="openTransfer()">
+<button
+    class="dark"
+    onclick="openTransfer()"
+>
 ↔ Zarf Transferi
 </button>
 
 </div>
+
 </section>
 
+
+<!-- İŞLEMLER -->
 
 <section class="card">
 
 <h2>🧾 Son İşlemler</h2>
 
 <div id="transactions">
+
 <div class="muted">
 Henüz işlem yok.
 </div>
+
 </div>
 
 <button onclick="openTransaction()">
@@ -371,44 +528,71 @@ Henüz işlem yok.
 
 </section>
 
-</div>
 
 </div>
 
+</div>
 
-<!-- ACCOUNT MODAL -->
 
-<div class="modal" id="accountModal">
+<!-- =========================
+     HESAP EKLE MODAL
+========================= -->
+
+<div
+    class="modal"
+    id="accountModal"
+>
 
 <div class="sheet">
 
 <h2>💳 Hesap Ekle</h2>
 
 <input
-id="accountName"
-placeholder="Hesap adı">
+    id="accountName"
+    placeholder="Hesap adı"
+>
 
 <select id="accountType">
 
-<option value="asset">🏦 Banka</option>
-<option value="cash">💵 Nakit</option>
-<option value="credit">💳 Kredi Kartı</option>
-<option value="investment">📈 Yatırım</option>
-<option value="debt">🧾 Borç</option>
-<option value="other">📋 Diğer</option>
+<option value="asset">
+🏦 Banka
+</option>
+
+<option value="cash">
+💵 Nakit
+</option>
+
+<option value="credit">
+💳 Kredi Kartı
+</option>
+
+<option value="investment">
+📈 Yatırım
+</option>
+
+<option value="debt">
+🧾 Borç
+</option>
+
+<option value="other">
+📋 Diğer
+</option>
 
 </select>
 
 <input
-id="accountBalance"
-type="number"
-inputmode="decimal"
-placeholder="Mevcut bakiye">
+    id="accountBalance"
+    type="number"
+    inputmode="decimal"
+    placeholder="Mevcut bakiye"
+>
 
 <div class="actions">
 
-<button class="dark"
-onclick="closeModals()">
+<button
+    class="dark"
+    onclick="closeModals()"
+>
 İptal
 </button>
 
@@ -423,32 +607,44 @@ Kaydet
 </div>
 
 
-<!-- ACCOUNT TRANSFER -->
+<!-- =========================
+     HESAP TRANSFER
+========================= -->
 
-<div class="modal" id="accountTransferModal">
+<div
+    class="modal"
+    id="accountTransferModal"
+>
 
 <div class="sheet">
 
 <h2>↔ Hesap Transferi</h2>
 
-<label>Kaynak hesap</label>
+<label>
+Kaynak hesap
+</label>
 
 <select id="transferFrom"></select>
 
-<label>Hedef hesap</label>
+<label>
+Hedef hesap
+</label>
 
 <select id="transferTo"></select>
 
 <input
-id="accountTransferAmount"
-type="number"
-inputmode="decimal"
-placeholder="Transfer tutarı">
+    id="accountTransferAmount"
+    type="number"
+    inputmode="decimal"
+    placeholder="Transfer tutarı"
+>
 
 <div class="actions">
 
-<button class="dark"
-onclick="closeModals()">
+<button
+    class="dark"
+    onclick="closeModals()"
+>
 İptal
 </button>
 
@@ -463,13 +659,20 @@ Transfer Et
 </div>
 
 
-<!-- TRANSACTION -->
+<!-- =========================
+     İŞLEM
+========================= -->
 
-<div class="modal" id="transactionModal">
+<div
+    class="modal"
+    id="transactionModal"
+>
 
 <div class="sheet">
 
-<h2>🧾 Yeni İşlem</h2>
+<h2 id="transactionModalTitle">
+🧾 Yeni İşlem
+</h2>
 
 <select id="transactionType">
 
@@ -484,45 +687,79 @@ Transfer Et
 </select>
 
 <input
-id="transactionAmount"
-type="number"
-inputmode="decimal"
-placeholder="Tutar">
+    id="transactionAmount"
+    type="number"
+    inputmode="decimal"
+    placeholder="Tutar"
+>
 
 <input
-id="transactionDescription"
-placeholder="Açıklama">
+    id="transactionDescription"
+    placeholder="Açıklama"
+>
 
 <select id="transactionCategory">
 
-<option>Market</option>
-<option>Faturalar</option>
-<option>Ulaşım</option>
-<option>Yemek</option>
-<option>Eğlence</option>
-<option>Sağlık</option>
-<option>Alışveriş</option>
-<option>Maaş</option>
-<option>Diğer</option>
+<option value="Market">
+Market
+</option>
+
+<option value="Faturalar">
+Faturalar
+</option>
+
+<option value="Ulaşım">
+Ulaşım
+</option>
+
+<option value="Yemek">
+Yemek
+</option>
+
+<option value="Eğlence">
+Eğlence
+</option>
+
+<option value="Sağlık">
+Sağlık
+</option>
+
+<option value="Alışveriş">
+Alışveriş
+</option>
+
+<option value="Maaş">
+Maaş
+</option>
+
+<option value="Diğer">
+Diğer
+</option>
 
 </select>
 
 <select id="transactionAccount">
+
 <option value="">
 Hesap seç
 </option>
+
 </select>
 
 <select id="transactionEnvelope">
+
 <option value="">
 Zarf seç
 </option>
+
 </select>
 
 <div class="actions">
 
-<button class="dark"
-onclick="closeModals()">
+<button
+    class="dark"
+    onclick="closeModals()"
+>
 İptal
 </button>
 
@@ -539,54 +776,93 @@ Kaydet
 
 <script>
 
-const money = n =>
-new Intl.NumberFormat("tr-TR", {
-    style: "currency",
-    currency: "TRY"
-}).format(Number(n) || 0);
+/* =====================================================
+   FİNPAL
+   VERİ ANAHTARI:
+   finpalData
+
+   BU ANAHTAR DEĞİŞTİRİLMİYOR.
+   MEVCUT VERİLER SİLİNMİYOR.
+===================================================== */
 
 
-/* =========================
-   VERİ
-========================= */
+/* =====================================================
+   PARA
+===================================================== */
+
+function money(value){
+
+    return new Intl.NumberFormat(
+        "tr-TR",
+        {
+            style:"currency",
+            currency:"TRY"
+        }
+    ).format(
+        Number(value) || 0
+    );
+
+}
+
+
+/* =====================================================
+   VERİ YÜKLE
+===================================================== */
 
 function loadData(){
+
+    const emptyData = {
+
+        accounts:[],
+        transactions:[],
+        envelopes:[],
+        budgets:[]
+
+    };
+
 
     try{
 
         const saved =
-            localStorage.getItem("finpalData");
+            localStorage.getItem(
+                "finpalData"
+            );
 
-        if(saved){
 
-            const parsed =
-                JSON.parse(saved);
+        if(!saved){
 
-            return {
-
-                accounts:
-                    Array.isArray(parsed.accounts)
-                    ? parsed.accounts
-                    : [],
-
-                transactions:
-                    Array.isArray(parsed.transactions)
-                    ? parsed.transactions
-                    : [],
-
-                envelopes:
-                    Array.isArray(parsed.envelopes)
-                    ? parsed.envelopes
-                    : [],
-
-                budgets:
-                    Array.isArray(parsed.budgets)
-                    ? parsed.budgets
-                    : []
-
-            };
+            return emptyData;
 
         }
+
+
+        const parsed =
+            JSON.parse(saved);
+
+
+        return {
+
+            accounts:
+                Array.isArray(parsed.accounts)
+                ? parsed.accounts
+                : [],
+
+            transactions:
+                Array.isArray(parsed.transactions)
+                ? parsed.transactions
+                : [],
+
+            envelopes:
+                Array.isArray(parsed.envelopes)
+                ? parsed.envelopes
+                : [],
+
+            budgets:
+                Array.isArray(parsed.budgets)
+                ? parsed.budgets
+                : []
+
+        };
 
     }catch(error){
 
@@ -595,14 +871,9 @@ function loadData(){
             error
         );
 
-    }
+        return emptyData;
 
-    return {
-        accounts:[],
-        transactions:[],
-        envelopes:[],
-        budgets:[]
-    };
+    }
 
 }
 
@@ -610,25 +881,40 @@ function loadData(){
 let data = loadData();
 
 
-/* =========================
+/* =====================================================
    KAYDET
-========================= */
+===================================================== */
 
 function save(){
 
-    localStorage.setItem(
-        "finpalData",
-        JSON.stringify(data)
-    );
+    try{
 
-    render();
+        localStorage.setItem(
+            "finpalData",
+            JSON.stringify(data)
+        );
+
+        render();
+
+    }catch(error){
+
+        console.error(
+            "FinPal kayıt hatası:",
+            error
+        );
+
+        alert(
+            "Veriler kaydedilemedi."
+        );
+
+    }
 
 }
 
 
-/* =========================
-   YARDIMCI
-========================= */
+/* =====================================================
+   HTML GÜVENLİĞİ
+===================================================== */
 
 function escapeHTML(value){
 
@@ -642,11 +928,18 @@ function escapeHTML(value){
 }
 
 
+/* =====================================================
+   HESAP TİPİ
+===================================================== */
+
 function accountIsLiability(account){
 
     return (
-        account.type === "credit" ||
-        account.type === "debt"
+        account &&
+        (
+            account.type === "credit" ||
+            account.type === "debt"
+        )
     );
 
 }
@@ -665,49 +958,53 @@ function accountTypeName(type){
 
     };
 
-    return names[type] || "Diğer";
-
-}
-
-
-function currentMonth(){
-
-    const d = new Date();
-
     return (
-        d.getFullYear() +
-        "-" +
-        String(d.getMonth()+1).padStart(2,"0")
+        names[type] ||
+        "Diğer"
     );
 
 }
 
 
-/* =========================
-   VARLIK / BORÇ
-========================= */
+/* =====================================================
+   AY
+===================================================== */
 
-function calculateAssets(){
+function currentMonth(){
 
-    return data.accounts
-        .filter(x => !accountIsLiability(x))
-        .reduce(
-            (sum,x) =>
-                sum + Number(x.balance || 0),
-            0
-        );
+    const d =
+        new Date();
+
+
+    return (
+        d.getFullYear() +
+        "-" +
+        String(
+            d.getMonth() + 1
+        ).padStart(2,"0")
+    );
 
 }
 
 
-function calculateLiabilities(){
+/* =====================================================
+   VARLIKLAR
+===================================================== */
+
+function calculateAssets(){
 
     return data.accounts
-        .filter(x => accountIsLiability(x))
+
+        .filter(
+            account =>
+                !accountIsLiability(account)
+        )
+
         .reduce(
-            (sum,x) =>
-                sum + Math.abs(
-                    Number(x.balance || 0)
+            (sum,account) =>
+                sum +
+                Number(
+                    account.balance || 0
                 ),
             0
         );
@@ -715,17 +1012,46 @@ function calculateLiabilities(){
 }
 
 
-/* =========================
+/* =====================================================
+   BORÇLAR
+===================================================== */
+
+function calculateLiabilities(){
+
+    return data.accounts
+
+        .filter(
+            account =>
+                accountIsLiability(account)
+        )
+
+        .reduce(
+            (sum,account) =>
+                sum +
+                Math.abs(
+                    Number(
+                        account.balance || 0
+                    )
+                ),
+            0
+        );
+
+}
+
+
+/* =====================================================
    ANA RENDER
-========================= */
+===================================================== */
 
 function render(){
 
     const assets =
         calculateAssets();
 
+
     const liabilities =
         calculateLiabilities();
+
 
     const netWorth =
         assets - liabilities;
@@ -734,110 +1060,210 @@ function render(){
     const now =
         new Date();
 
-    const month =
+
+    const currentMonthNumber =
         now.getMonth();
 
-    const year =
+
+    const currentYear =
         now.getFullYear();
 
 
     let income = 0;
+
     let expense = 0;
 
 
-    data.transactions.forEach(x => {
+    data.transactions.forEach(
+        transaction => {
 
-        const d =
-            new Date(x.date);
+            if(
+                transaction.type !== "income" &&
+                transaction.type !== "expense"
+            ){
 
-        if(
-            d.getMonth() === month &&
-            d.getFullYear() === year
-        ){
+                return;
 
-            if(x.type === "income"){
-                income += Number(x.amount || 0);
             }
 
-            if(x.type === "expense"){
-                expense += Number(x.amount || 0);
+
+            const date =
+                new Date(
+                    transaction.date
+                );
+
+
+            if(
+                date.getMonth() !==
+                    currentMonthNumber ||
+                date.getFullYear() !==
+                    currentYear
+            ){
+
+                return;
+
+            }
+
+
+            if(
+                transaction.type ===
+                "income"
+            ){
+
+                income +=
+                    Number(
+                        transaction.amount || 0
+                    );
+
+            }
+
+
+            if(
+                transaction.type ===
+                "expense"
+            ){
+
+                expense +=
+                    Number(
+                        transaction.amount || 0
+                    );
+
             }
 
         }
-
-    });
-
-
-    const netWorthEl =
-        document.getElementById("netWorth");
-
-    const assetsEl =
-        document.getElementById("assets");
-
-    const liabilitiesEl =
-        document.getElementById("liabilities");
-
-    const monthIncomeEl =
-        document.getElementById("monthIncome");
-
-    const monthExpenseEl =
-        document.getElementById("monthExpense");
-
-    const monthSavingEl =
-        document.getElementById("monthSaving");
-
-    const monthlyNetEl =
-        document.getElementById("monthlyNet");
+    );
 
 
-    if(netWorthEl)
-        netWorthEl.innerText =
+    const elements = {
+
+        netWorth:
+            document.getElementById(
+                "netWorth"
+            ),
+
+        assets:
+            document.getElementById(
+                "assets"
+            ),
+
+        liabilities:
+            document.getElementById(
+                "liabilities"
+            ),
+
+        monthIncome:
+            document.getElementById(
+                "monthIncome"
+            ),
+
+        monthExpense:
+            document.getElementById(
+                "monthExpense"
+            ),
+
+        monthSaving:
+            document.getElementById(
+                "monthSaving"
+            ),
+
+        monthlyNet:
+            document.getElementById(
+                "monthlyNet"
+            )
+
+    };
+
+
+    if(elements.netWorth){
+
+        elements.netWorth.innerText =
             money(netWorth);
 
-    if(assetsEl)
-        assetsEl.innerText =
+    }
+
+
+    if(elements.assets){
+
+        elements.assets.innerText =
             money(assets);
 
-    if(liabilitiesEl)
-        liabilitiesEl.innerText =
+    }
+
+
+    if(elements.liabilities){
+
+        elements.liabilities.innerText =
             money(liabilities);
 
-    if(monthIncomeEl)
-        monthIncomeEl.innerText =
+    }
+
+
+    if(elements.monthIncome){
+
+        elements.monthIncome.innerText =
             money(income);
 
-    if(monthExpenseEl)
-        monthExpenseEl.innerText =
+    }
+
+
+    if(elements.monthExpense){
+
+        elements.monthExpense.innerText =
             money(expense);
 
-    if(monthSavingEl)
-        monthSavingEl.innerText =
-            money(income - expense);
+    }
 
-    if(monthlyNetEl)
-        monthlyNetEl.innerText =
-            money(income - expense);
+
+    if(elements.monthSaving){
+
+        elements.monthSaving.innerText =
+            money(
+                income - expense
+            );
+
+    }
+
+
+    if(elements.monthlyNet){
+
+        elements.monthlyNet.innerText =
+            money(
+                income - expense
+            );
+
+    }
 
 
     renderAccounts();
+
     renderEnvelopes();
+
     renderTransactions();
+
     renderBudgets();
+
     updateSelects();
 
 }
 
 
-/* =========================
-   HESAPLAR
-========================= */
+/* =====================================================
+   HESAPLARI GÖSTER
+===================================================== */
 
 function renderAccounts(){
 
     const el =
-        document.getElementById("accounts");
+        document.getElementById(
+            "accounts"
+        );
 
-    if(!el) return;
+
+    if(!el){
+
+        return;
+
+    }
 
 
     if(!data.accounts.length){
@@ -851,89 +1277,107 @@ function renderAccounts(){
 
 
     el.innerHTML =
-        data.accounts.map((x,index) => {
+        data.accounts
+            .map(
+                (account,index) => {
 
-            const liability =
-                accountIsLiability(x);
-
-            const value =
-                Number(x.balance || 0);
-
-
-            return `
-
-            <div class="account">
-
-                <div class="account-top">
-
-                    <div>
-
-                        <strong>
-                            ${escapeHTML(
-                                x.name || "Hesap"
-                            )}
-                        </strong>
-
-                        <br>
-
-                        <small>
-                            ${accountTypeName(x.type)}
-                        </small>
-
-                    </div>
-
-                    <strong class="${
-                        liability
-                        ? "negative"
-                        : "positive"
-                    }">
-
-                        ${money(value)}
-
-                    </strong>
-
-                </div>
+                    const liability =
+                        accountIsLiability(
+                            account
+                        );
 
 
-                <div class="account-actions">
+                    const balance =
+                        Number(
+                            account.balance || 0
+                        );
 
-                    <button
-                        class="small"
-                        onclick="editAccount(${index})">
 
-                        ✏️ Düzenle
+                    return `
 
-                    </button>
+<div class="account">
 
-                    <button
-                        class="small danger"
-                        onclick="deleteAccount(${index})">
+<div class="account-top">
 
-                        🗑️ Sil
+<div>
 
-                    </button>
+<strong>
+${escapeHTML(
+    account.name ||
+    "Hesap"
+)}
+</strong>
 
-                </div>
+<br>
 
-            </div>
+<small>
+${accountTypeName(
+    account.type
+)}
+</small>
 
-            `;
+</div>
 
-        }).join("");
+
+<strong class="${
+    liability
+    ? "negative"
+    : "positive"
+}">
+
+${money(balance)}
+
+</strong>
+
+</div>
+
+
+<div class="account-actions">
+
+<button
+    class="small"
+    onclick="editAccount(${index})"
+>
+✏️ Düzenle
+</button>
+
+<button
+    class="small danger"
+    onclick="deleteAccount(${index})"
+>
+🗑️ Sil
+</button>
+
+</div>
+
+</div>
+
+`;
+
+                }
+            )
+            .join("");
 
 }
 
 
-/* =========================
-   ZARFLAR
-========================= */
+/* =====================================================
+   ZARFLARI GÖSTER
+===================================================== */
 
 function renderEnvelopes(){
 
     const el =
-        document.getElementById("envelopes");
+        document.getElementById(
+            "envelopes"
+        );
 
-    if(!el) return;
+
+    if(!el){
+
+        return;
+
+    }
 
 
     if(!data.envelopes.length){
@@ -947,101 +1391,120 @@ function renderEnvelopes(){
 
 
     el.innerHTML =
-        data.envelopes.map(x => {
+        data.envelopes
+            .map(
+                envelope => {
 
-            const budget =
-                Number(x.budget || 0);
-
-            const spent =
-                Number(x.spent || 0);
-
-            const remaining =
-                budget - spent;
-
-            const percent =
-                budget > 0
-                ? Math.min(
-                    Math.max(
-                        spent / budget * 100,
-                        0
-                    ),
-                    100
-                )
-                : 0;
+                    const budget =
+                        Number(
+                            envelope.budget || 0
+                        );
 
 
-            return `
-
-            <div>
-
-                <div class="row">
-
-                    <span>
-
-                        <strong>
-                            ${escapeHTML(
-                                x.name || "Zarf"
-                            )}
-                        </strong>
-
-                        <br>
-
-                        <small>
-                            Harcanan:
-                            ${money(spent)}
-                        </small>
-
-                    </span>
-
-                    <strong class="${
-                        remaining < 0
-                        ? "negative"
-                        : "positive"
-                    }">
-
-                        ${money(remaining)}
-
-                    </strong>
-
-                </div>
+                    const spent =
+                        Number(
+                            envelope.spent || 0
+                        );
 
 
-                <div style="
-                    height:7px;
-                    background:#eee;
-                    border-radius:20px;
-                    overflow:hidden;
-                    margin:6px 0 10px;
-                ">
+                    const remaining =
+                        budget - spent;
 
-                    <div style="
-                        height:100%;
-                        width:${percent}%;
-                        background:#f07818;
-                        border-radius:20px;
-                    "></div>
 
-                </div>
+                    const percent =
+                        budget > 0
+                        ? (
+                            spent /
+                            budget
+                        ) * 100
+                        : 0;
 
-            </div>
 
-            `;
+                    const safePercent =
+                        Math.min(
+                            Math.max(
+                                percent,
+                                0
+                            ),
+                            100
+                        );
 
-        }).join("");
+
+                    return `
+
+<div>
+
+<div class="row">
+
+<span>
+
+<strong>
+${escapeHTML(
+    envelope.name ||
+    "Zarf"
+)}
+</strong>
+
+<br>
+
+<small>
+Harcanan:
+${money(spent)}
+</small>
+
+</span>
+
+
+<strong class="${
+    remaining < 0
+    ? "negative"
+    : "positive"
+}">
+
+${money(remaining)}
+
+</strong>
+
+</div>
+
+
+<div class="progress">
+
+<div
+    class="progress-bar"
+    style="width:${safePercent}%"
+></div>
+
+</div>
+
+</div>
+
+`;
+
+                }
+            )
+            .join("");
 
 }
 
 
-/* =========================
-   İŞLEMLER
-========================= */
+/* =====================================================
+   İŞLEMLERİ GÖSTER
+===================================================== */
 
 function renderTransactions(){
 
     const el =
-        document.getElementById("transactions");
+        document.getElementById(
+            "transactions"
+        );
 
-    if(!el) return;
+
+    if(!el){
+
+        return;
+
+    }
 
 
     if(!data.transactions.length){
@@ -1056,151 +1519,183 @@ function renderTransactions(){
 
     const transactions =
         data.transactions
-        .map((x,index) => ({
-            transaction:x,
-            index:index
-        }))
-        .reverse()
-        .slice(0,10);
+            .map(
+                (transaction,index) => ({
+
+                    transaction:
+                        transaction,
+
+                    index:
+                        index
+
+                })
+            )
+            .reverse()
+            .slice(
+                0,
+                10
+            );
 
 
     el.innerHTML =
-        transactions.map(item => {
+        transactions
+            .map(
+                item => {
 
-            const x =
-                item.transaction;
-
-            const realIndex =
-                item.index;
-
-
-            const isIncome =
-                x.type === "income";
-
-            const isTransfer =
-                x.type === "transfer";
+                    const transaction =
+                        item.transaction;
 
 
-            return `
-
-            <div class="row">
-
-                <div style="flex:1">
-
-                    <strong>
-                        ${escapeHTML(
-                            x.description ||
-                            x.category ||
-                            "İşlem"
-                        )}
-                    </strong>
-
-                    <br>
-
-                    <small class="muted">
-
-                        ${escapeHTML(
-                            x.category || ""
-                        )}
-
-                        ${
-                            isTransfer
-                            ? " · Hesap Transferi"
-                            : ""
-                        }
-
-                    </small>
-
-                </div>
+                    const index =
+                        item.index;
 
 
-                <div style="
-                    text-align:right;
-                    margin-left:10px;
-                ">
-
-                    <strong class="${
-                        isIncome
-                        ? "positive"
-                        : isTransfer
-                        ? ""
-                        : "negative"
-                    }">
-
-                        ${
-                            isIncome
-                            ? "+"
-                            : isTransfer
-                            ? ""
-                            : "-"
-                        }
-
-                        ${money(x.amount)}
-
-                    </strong>
+                    const isIncome =
+                        transaction.type ===
+                        "income";
 
 
-                    <div style="
-                        display:flex;
-                        gap:5px;
-                        justify-content:flex-end;
-                        margin-top:6px;
-                    ">
+                    const isTransfer =
+                        transaction.type ===
+                        "transfer";
 
-                        <button
-                            class="small"
-                            onclick="editTransaction(${realIndex})">
 
-                            ✏️
+                    const amount =
+                        Number(
+                            transaction.amount || 0
+                        );
 
-                        </button>
 
-                        <button
-                            class="small danger"
-                            onclick="deleteTransaction(${realIndex})">
+                    return `
 
-                            🗑️
+<div class="row">
 
-                        </button>
+<div style="flex:1;min-width:0">
 
-                    </div>
+<strong>
 
-                </div>
+${escapeHTML(
+    transaction.description ||
+    transaction.category ||
+    "İşlem"
+)}
 
-            </div>
+</strong>
 
-            `;
+<br>
 
-        }).join("");
+<small class="muted">
+
+${escapeHTML(
+    transaction.category || ""
+)}
+
+${
+    isTransfer
+    ? " · Hesap Transferi"
+    : ""
+}
+
+</small>
+
+</div>
+
+
+<div style="
+text-align:right;
+margin-left:10px;
+">
+
+<strong class="${
+    isIncome
+    ? "positive"
+    : isTransfer
+    ? ""
+    : "negative"
+}">
+
+${
+    isIncome
+    ? "+"
+    : isTransfer
+    ? ""
+    : "-"
+}
+
+${money(amount)}
+
+</strong>
+
+
+<div class="transaction-actions">
+
+<button
+    class="small"
+    onclick="editTransaction(${index})"
+>
+✏️
+</button>
+
+<button
+    class="small danger"
+    onclick="deleteTransaction(${index})"
+>
+🗑️
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+`;
+
+                }
+            )
+            .join("");
 
 }
 
 
-/* =========================
-   SELECTLER
-========================= */
+/* =====================================================
+   SELECTLERİ GÜNCELLE
+===================================================== */
 
 function updateSelects(){
 
     const accountOptions =
-        data.accounts.map(x => `
+        data.accounts
+            .map(
+                account => `
 
-            <option value="${x.id}">
-                ${escapeHTML(x.name)}
-            </option>
+<option value="${escapeHTML(
+    String(account.id)
+)}">
 
-        `).join("");
+${escapeHTML(
+    account.name ||
+    "Hesap"
+)}
+
+</option>
+
+`
+            )
+            .join("");
 
 
-    const accountSelect =
+    const transactionAccount =
         document.getElementById(
             "transactionAccount"
         );
+
 
     const transferFrom =
         document.getElementById(
             "transferFrom"
         );
+
 
     const transferTo =
         document.getElementById(
@@ -1208,11 +1703,30 @@ function updateSelects(){
         );
 
 
-    if(accountSelect){
+    if(transactionAccount){
 
-        accountSelect.innerHTML =
+        const oldValue =
+            transactionAccount.value;
+
+
+        transactionAccount.innerHTML =
             '<option value="">Hesap seç</option>' +
             accountOptions;
+
+
+        if(
+            oldValue &&
+            data.accounts.some(
+                account =>
+                    String(account.id) ===
+                    String(oldValue)
+            )
+        ){
+
+            transactionAccount.value =
+                oldValue;
+
+        }
 
     }
 
@@ -1234,61 +1748,105 @@ function updateSelects(){
 
 
     const envelopeOptions =
-        data.envelopes.map(x => `
+        data.envelopes
+            .map(
+                envelope => `
 
-            <option value="${x.id}">
-                ${escapeHTML(x.name)}
-            </option>
+<option value="${escapeHTML(
+    String(envelope.id)
+)}">
 
-        `).join("");
+${escapeHTML(
+    envelope.name ||
+    "Zarf"
+)}
+
+</option>
+
+`
+            )
+            .join("");
 
 
-    const envelopeSelect =
+    const transactionEnvelope =
         document.getElementById(
             "transactionEnvelope"
         );
 
 
-    if(envelopeSelect){
+    if(transactionEnvelope){
 
-        envelopeSelect.innerHTML =
+        const oldValue =
+            transactionEnvelope.value;
+
+
+        transactionEnvelope.innerHTML =
             '<option value="">Zarf seç</option>' +
             envelopeOptions;
+
+
+        if(
+            oldValue &&
+            data.envelopes.some(
+                envelope =>
+                    String(envelope.id) ===
+                    String(oldValue)
+            )
+        ){
+
+            transactionEnvelope.value =
+                oldValue;
+
+        }
 
     }
 
 }
 
 
-/* =========================
+/* =====================================================
    HESAP EKLE
-========================= */
+===================================================== */
 
 function addAccount(){
 
-    const name =
+    const nameElement =
         document.getElementById(
             "accountName"
-        ).value.trim();
+        );
+
+
+    const typeElement =
+        document.getElementById(
+            "accountType"
+        );
+
+
+    const balanceElement =
+        document.getElementById(
+            "accountBalance"
+        );
+
+
+    const name =
+        nameElement.value.trim();
 
 
     const type =
-        document.getElementById(
-            "accountType"
-        ).value;
+        typeElement.value;
 
 
     const balance =
         parseFloat(
-            document.getElementById(
-                "accountBalance"
-            ).value
+            balanceElement.value
         ) || 0;
 
 
     if(!name){
 
-        alert("Hesap adı gir.");
+        alert(
+            "Hesap adı gir."
+        );
 
         return;
 
@@ -1311,14 +1869,9 @@ function addAccount(){
     save();
 
 
-    document.getElementById(
-        "accountName"
-    ).value = "";
+    nameElement.value = "";
 
-
-    document.getElementById(
-        "accountBalance"
-    ).value = "";
+    balanceElement.value = "";
 
 
     closeModals();
@@ -1326,34 +1879,56 @@ function addAccount(){
 }
 
 
-/* =========================
+/* =====================================================
    HESAP DÜZENLE
-========================= */
+===================================================== */
 
 function editAccount(index){
 
     const account =
         data.accounts[index];
 
-    if(!account) return;
+
+    if(!account){
+
+        return;
+
+    }
 
 
     const name =
         prompt(
             "Hesap adı:",
-            account.name
+            account.name || ""
         );
 
 
-    if(name === null) return;
+    if(name === null){
+
+        return;
+
+    }
+
+
+    const balanceText =
+        prompt(
+            "Mevcut bakiye:",
+            Number(
+                account.balance || 0
+            )
+        );
+
+
+    if(balanceText === null){
+
+        return;
+
+    }
 
 
     const balance =
         parseFloat(
-            prompt(
-                "Mevcut bakiye:",
-                account.balance
-            )
+            balanceText
         );
 
 
@@ -1369,7 +1944,9 @@ function editAccount(index){
 
 
     account.name =
-        name.trim() || account.name;
+        name.trim() ||
+        account.name;
+
 
     account.balance =
         balance;
@@ -1380,23 +1957,30 @@ function editAccount(index){
 }
 
 
-/* =========================
+/* =====================================================
    HESAP SİL
-========================= */
+===================================================== */
 
 function deleteAccount(index){
 
     const account =
         data.accounts[index];
 
-    if(!account) return;
+
+    if(!account){
+
+        return;
+
+    }
 
 
-    if(
-        !confirm(
+    const confirmed =
+        confirm(
             `"${account.name}" hesabını silmek istediğine emin misin?`
-        )
-    ){
+        );
+
+
+    if(!confirmed){
 
         return;
 
@@ -1414,26 +1998,22 @@ function deleteAccount(index){
 }
 
 
-/* =========================
-   HESAP TRANSFERİ
-========================= */
+/* =====================================================
+   HESAP TRANSFER
+===================================================== */
 
 function transferAccount(){
 
-    const fromId =
-        Number(
-            document.getElementById(
-                "transferFrom"
-            ).value
-        );
+    const fromValue =
+        document.getElementById(
+            "transferFrom"
+        ).value;
 
 
-    const toId =
-        Number(
-            document.getElementById(
-                "transferTo"
-            ).value
-        );
+    const toValue =
+        document.getElementById(
+            "transferTo"
+        ).value;
 
 
     const amount =
@@ -1442,6 +2022,14 @@ function transferAccount(){
                 "accountTransferAmount"
             ).value
         );
+
+
+    const fromId =
+        Number(fromValue);
+
+
+    const toId =
+        Number(toValue);
 
 
     if(!fromId || !toId){
@@ -1466,7 +2054,10 @@ function transferAccount(){
     }
 
 
-    if(!amount || amount <= 0){
+    if(
+        !amount ||
+        amount <= 0
+    ){
 
         alert(
             "Geçerli bir tutar gir."
@@ -1479,13 +2070,17 @@ function transferAccount(){
 
     const from =
         data.accounts.find(
-            x => Number(x.id) === fromId
+            account =>
+                Number(account.id) ===
+                fromId
         );
 
 
     const to =
         data.accounts.find(
-            x => Number(x.id) === toId
+            account =>
+                Number(account.id) ===
+                toId
         );
 
 
@@ -1500,24 +2095,51 @@ function transferAccount(){
     }
 
 
-    if(accountIsLiability(from)){
+    /*
+       Kaynak hesap:
 
-        from.balance += amount;
+       Varlık → para azalır
+       Borç/Kredi → borç azalacağı için
+       bakiye pozitif mantığında artar.
+    */
+
+    if(
+        accountIsLiability(from)
+    ){
+
+        from.balance =
+            Number(from.balance || 0) +
+            amount;
 
     }else{
 
-        from.balance -= amount;
+        from.balance =
+            Number(from.balance || 0) -
+            amount;
 
     }
 
 
-    if(accountIsLiability(to)){
+    /*
+       Hedef hesap:
 
-        to.balance -= amount;
+       Varlık → para artar
+       Borç/Kredi → borç artar
+    */
+
+    if(
+        accountIsLiability(to)
+    ){
+
+        to.balance =
+            Number(to.balance || 0) -
+            amount;
 
     }else{
 
-        to.balance += amount;
+        to.balance =
+            Number(to.balance || 0) +
+            amount;
 
     }
 
@@ -1537,11 +2159,14 @@ function transferAccount(){
 
         category:"Hesap Transferi",
 
-        accountId:from.id,
+        accountId:
+            from.id,
 
-        targetAccountId:to.id,
+        targetAccountId:
+            to.id,
 
-        date:new Date().toISOString()
+        date:
+            new Date().toISOString()
 
     });
 
@@ -1559,9 +2184,9 @@ function transferAccount(){
 }
 
 
-/* =========================
+/* =====================================================
    İŞLEM EKLE
-========================= */
+===================================================== */
 
 function addTransaction(){
 
@@ -1603,7 +2228,10 @@ function addTransaction(){
         ).value;
 
 
-    if(!amount || amount <= 0){
+    if(
+        !amount ||
+        amount <= 0
+    ){
 
         alert(
             "Geçerli bir tutar gir."
@@ -1614,7 +2242,9 @@ function addTransaction(){
     }
 
 
-    /* Bütçeye bağlı zarfı otomatik bul */
+    /*
+       Bütçeye bağlı zarfı otomatik bul.
+    */
 
     if(
         type === "expense" &&
@@ -1623,10 +2253,12 @@ function addTransaction(){
 
         const budget =
             data.budgets.find(
-                x =>
-                    x.category === category &&
-                    x.month === currentMonth() &&
-                    x.envelopeId
+                budget =>
+                    budget.category ===
+                        category &&
+                    budget.month ===
+                        currentMonth() &&
+                    budget.envelopeId
             );
 
 
@@ -1658,7 +2290,8 @@ function addTransaction(){
 
         envelopeId:envelopeId,
 
-        date:new Date().toISOString()
+        date:
+            new Date().toISOString()
 
     };
 
@@ -1668,14 +2301,16 @@ function addTransaction(){
     );
 
 
-    /* Hesap bakiyesi */
+    /*
+       Hesap bakiyesi.
+    */
 
     if(accountId){
 
         const account =
             data.accounts.find(
-                x =>
-                    String(x.id) ===
+                account =>
+                    String(account.id) ===
                     String(accountId)
             );
 
@@ -1686,25 +2321,45 @@ function addTransaction(){
                 accountIsLiability(account)
             ){
 
-                if(type === "expense"){
+                if(
+                    type === "expense"
+                ){
 
-                    account.balance += amount;
+                    account.balance =
+                        Number(
+                            account.balance || 0
+                        ) +
+                        amount;
 
-                }else if(type === "income"){
+                }else{
 
-                    account.balance -= amount;
+                    account.balance =
+                        Number(
+                            account.balance || 0
+                        ) -
+                        amount;
 
                 }
 
             }else{
 
-                if(type === "income"){
+                if(
+                    type === "income"
+                ){
 
-                    account.balance += amount;
+                    account.balance =
+                        Number(
+                            account.balance || 0
+                        ) +
+                        amount;
 
-                }else if(type === "expense"){
+                }else{
 
-                    account.balance -= amount;
+                    account.balance =
+                        Number(
+                            account.balance || 0
+                        ) -
+                        amount;
 
                 }
 
@@ -1715,7 +2370,9 @@ function addTransaction(){
     }
 
 
-    /* Zarf harcaması */
+    /*
+       Zarf harcaması.
+    */
 
     if(
         type === "expense" &&
@@ -1724,8 +2381,8 @@ function addTransaction(){
 
         const envelope =
             data.envelopes.find(
-                x =>
-                    String(x.id) ===
+                envelope =>
+                    String(envelope.id) ===
                     String(envelopeId)
             );
 
@@ -1735,7 +2392,8 @@ function addTransaction(){
             envelope.spent =
                 Number(
                     envelope.spent || 0
-                ) + amount;
+                ) +
+                amount;
 
         }
 
@@ -1760,19 +2418,27 @@ function addTransaction(){
 }
 
 
-/* =========================
+/* =====================================================
    İŞLEM DÜZENLE
-========================= */
+===================================================== */
 
 function editTransaction(index){
 
     const transaction =
         data.transactions[index];
 
-    if(!transaction) return;
+
+    if(!transaction){
+
+        return;
+
+    }
 
 
-    if(transaction.type === "transfer"){
+    if(
+        transaction.type ===
+        "transfer"
+    ){
 
         alert(
             "Hesap transferleri şu an düzenlenemez."
@@ -1784,7 +2450,9 @@ function editTransaction(index){
 
 
     const oldAmount =
-        Number(transaction.amount || 0);
+        Number(
+            transaction.amount || 0
+        );
 
 
     const oldAccountId =
@@ -1795,12 +2463,25 @@ function editTransaction(index){
         transaction.envelopeId;
 
 
+    const newAmountText =
+        prompt(
+            "Yeni işlem tutarı:",
+            oldAmount
+        );
+
+
+    if(
+        newAmountText === null
+    ){
+
+        return;
+
+    }
+
+
     const newAmount =
         parseFloat(
-            prompt(
-                "Yeni işlem tutarı:",
-                oldAmount
-            )
+            newAmountText
         );
 
 
@@ -1825,8 +2506,13 @@ function editTransaction(index){
         );
 
 
-    if(newDescription === null)
+    if(
+        newDescription === null
+    ){
+
         return;
+
+    }
 
 
     const newCategory =
@@ -1836,18 +2522,25 @@ function editTransaction(index){
         );
 
 
-    if(newCategory === null)
+    if(
+        newCategory === null
+    ){
+
         return;
 
+    }
 
-    /* Eski hesap hareketini geri al */
+
+    /*
+       Eski hesap hareketini geri al.
+    */
 
     if(oldAccountId){
 
         const oldAccount =
             data.accounts.find(
-                x =>
-                    String(x.id) ===
+                account =>
+                    String(account.id) ===
                     String(oldAccountId)
             );
 
@@ -1855,21 +2548,28 @@ function editTransaction(index){
         if(oldAccount){
 
             if(
-                accountIsLiability(oldAccount)
+                accountIsLiability(
+                    oldAccount
+                )
             ){
 
                 if(
-                    transaction.type === "expense"
+                    transaction.type ===
+                    "expense"
                 ){
 
-                    oldAccount.balance -=
+                    oldAccount.balance =
+                        Number(
+                            oldAccount.balance || 0
+                        ) -
                         oldAmount;
 
-                }else if(
-                    transaction.type === "income"
-                ){
+                }else{
 
-                    oldAccount.balance +=
+                    oldAccount.balance =
+                        Number(
+                            oldAccount.balance || 0
+                        ) +
                         oldAmount;
 
                 }
@@ -1877,17 +2577,22 @@ function editTransaction(index){
             }else{
 
                 if(
-                    transaction.type === "income"
+                    transaction.type ===
+                    "income"
                 ){
 
-                    oldAccount.balance -=
+                    oldAccount.balance =
+                        Number(
+                            oldAccount.balance || 0
+                        ) -
                         oldAmount;
 
-                }else if(
-                    transaction.type === "expense"
-                ){
+                }else{
 
-                    oldAccount.balance +=
+                    oldAccount.balance =
+                        Number(
+                            oldAccount.balance || 0
+                        ) +
                         oldAmount;
 
                 }
@@ -1899,17 +2604,20 @@ function editTransaction(index){
     }
 
 
-    /* Eski zarf harcamasını geri al */
+    /*
+       Eski zarf harcamasını geri al.
+    */
 
     if(
-        transaction.type === "expense" &&
+        transaction.type ===
+            "expense" &&
         oldEnvelopeId
     ){
 
         const oldEnvelope =
             data.envelopes.find(
-                x =>
-                    String(x.id) ===
+                envelope =>
+                    String(envelope.id) ===
                     String(oldEnvelopeId)
             );
 
@@ -1921,7 +2629,8 @@ function editTransaction(index){
                     0,
                     Number(
                         oldEnvelope.spent || 0
-                    ) - oldAmount
+                    ) -
+                    oldAmount
                 );
 
         }
@@ -1929,48 +2638,61 @@ function editTransaction(index){
     }
 
 
-    /* Yeni değerler */
+    /*
+       Yeni işlem değerleri.
+    */
 
     transaction.amount =
         newAmount;
 
+
     transaction.description =
         newDescription.trim();
+
 
     transaction.category =
         newCategory.trim();
 
 
-    /* Yeni hesap hareketini uygula */
+    /*
+       Yeni hesap hareketini uygula.
+    */
 
     if(transaction.accountId){
 
-        const newAccount =
+        const account =
             data.accounts.find(
-                x =>
-                    String(x.id) ===
-                    String(transaction.accountId)
+                item =>
+                    String(item.id) ===
+                    String(
+                        transaction.accountId
+                    )
             );
 
 
-        if(newAccount){
+        if(account){
 
             if(
-                accountIsLiability(newAccount)
+                accountIsLiability(account)
             ){
 
                 if(
-                    transaction.type === "expense"
+                    transaction.type ===
+                    "expense"
                 ){
 
-                    newAccount.balance +=
+                    account.balance =
+                        Number(
+                            account.balance || 0
+                        ) +
                         newAmount;
 
-                }else if(
-                    transaction.type === "income"
-                ){
+                }else{
 
-                    newAccount.balance -=
+                    account.balance =
+                        Number(
+                            account.balance || 0
+                        ) -
                         newAmount;
 
                 }
@@ -1978,17 +2700,22 @@ function editTransaction(index){
             }else{
 
                 if(
-                    transaction.type === "income"
+                    transaction.type ===
+                    "income"
                 ){
 
-                    newAccount.balance +=
+                    account.balance =
+                        Number(
+                            account.balance || 0
+                        ) +
                         newAmount;
 
-                }else if(
-                    transaction.type === "expense"
-                ){
+                }else{
 
-                    newAccount.balance -=
+                    account.balance =
+                        Number(
+                            account.balance || 0
+                        ) -
                         newAmount;
 
                 }
@@ -2000,27 +2727,33 @@ function editTransaction(index){
     }
 
 
-    /* Yeni zarf harcamasını uygula */
+    /*
+       Yeni zarf harcamasını uygula.
+    */
 
     if(
-        transaction.type === "expense" &&
+        transaction.type ===
+            "expense" &&
         transaction.envelopeId
     ){
 
-        const newEnvelope =
+        const envelope =
             data.envelopes.find(
-                x =>
-                    String(x.id) ===
-                    String(transaction.envelopeId)
+                item =>
+                    String(item.id) ===
+                    String(
+                        transaction.envelopeId
+                    )
             );
 
 
-        if(newEnvelope){
+        if(envelope){
 
-            newEnvelope.spent =
+            envelope.spent =
                 Number(
-                    newEnvelope.spent || 0
-                ) + newAmount;
+                    envelope.spent || 0
+                ) +
+                newAmount;
 
         }
 
@@ -2032,16 +2765,21 @@ function editTransaction(index){
 }
 
 
-/* =========================
+/* =====================================================
    İŞLEM SİL
-========================= */
+===================================================== */
 
 function deleteTransaction(index){
 
     const transaction =
         data.transactions[index];
 
-    if(!transaction) return;
+
+    if(!transaction){
+
+        return;
+
+    }
 
 
     const confirmed =
@@ -2053,11 +2791,17 @@ function deleteTransaction(index){
                 "İşlem"
             ) +
             "\n" +
-            money(transaction.amount)
+            money(
+                transaction.amount
+            )
         );
 
 
-    if(!confirmed) return;
+    if(!confirmed){
+
+        return;
+
+    }
 
 
     const amount =
@@ -2066,22 +2810,26 @@ function deleteTransaction(index){
         );
 
 
-    /* =====================
+    /*
        NORMAL GELİR / GİDER
-    ===================== */
+    */
 
     if(
-        transaction.type === "expense" ||
-        transaction.type === "income"
+        transaction.type ===
+            "expense" ||
+        transaction.type ===
+            "income"
     ){
 
         if(transaction.accountId){
 
             const account =
                 data.accounts.find(
-                    x =>
-                        String(x.id) ===
-                        String(transaction.accountId)
+                    item =>
+                        String(item.id) ===
+                        String(
+                            transaction.accountId
+                        )
                 );
 
 
@@ -2092,28 +2840,46 @@ function deleteTransaction(index){
                 ){
 
                     if(
-                        transaction.type === "expense"
+                        transaction.type ===
+                        "expense"
                     ){
 
-                        account.balance -= amount;
+                        account.balance =
+                            Number(
+                                account.balance || 0
+                            ) -
+                            amount;
 
                     }else{
 
-                        account.balance += amount;
+                        account.balance =
+                            Number(
+                                account.balance || 0
+                            ) +
+                            amount;
 
                     }
 
                 }else{
 
                     if(
-                        transaction.type === "expense"
+                        transaction.type ===
+                        "expense"
                     ){
 
-                        account.balance += amount;
+                        account.balance =
+                            Number(
+                                account.balance || 0
+                            ) +
+                            amount;
 
                     }else{
 
-                        account.balance -= amount;
+                        account.balance =
+                            Number(
+                                account.balance || 0
+                            ) -
+                            amount;
 
                     }
 
@@ -2124,18 +2890,23 @@ function deleteTransaction(index){
         }
 
 
-        /* Zarf harcamasını geri al */
+        /*
+           Zarf harcamasını geri al.
+        */
 
         if(
-            transaction.type === "expense" &&
+            transaction.type ===
+                "expense" &&
             transaction.envelopeId
         ){
 
             const envelope =
                 data.envelopes.find(
-                    x =>
-                        String(x.id) ===
-                        String(transaction.envelopeId)
+                    item =>
+                        String(item.id) ===
+                        String(
+                            transaction.envelopeId
+                        )
                 );
 
 
@@ -2146,7 +2917,8 @@ function deleteTransaction(index){
                         0,
                         Number(
                             envelope.spent || 0
-                        ) - amount
+                        ) -
+                        amount
                     );
 
             }
@@ -2156,39 +2928,54 @@ function deleteTransaction(index){
     }
 
 
-    /* =====================
+    /*
        HESAP TRANSFERİ
-    ===================== */
+    */
 
     if(
-        transaction.type === "transfer"
+        transaction.type ===
+        "transfer"
     ){
 
         const from =
             data.accounts.find(
-                x =>
-                    String(x.id) ===
-                    String(transaction.accountId)
+                account =>
+                    String(account.id) ===
+                    String(
+                        transaction.accountId
+                    )
             );
 
 
         const to =
             data.accounts.find(
-                x =>
-                    String(x.id) ===
-                    String(transaction.targetAccountId)
+                account =>
+                    String(account.id) ===
+                    String(
+                        transaction.targetAccountId
+                    )
             );
 
 
         if(from){
 
-            if(accountIsLiability(from)){
+            if(
+                accountIsLiability(from)
+            ){
 
-                from.balance -= amount;
+                from.balance =
+                    Number(
+                        from.balance || 0
+                    ) -
+                    amount;
 
             }else{
 
-                from.balance += amount;
+                from.balance =
+                    Number(
+                        from.balance || 0
+                    ) +
+                    amount;
 
             }
 
@@ -2197,13 +2984,23 @@ function deleteTransaction(index){
 
         if(to){
 
-            if(accountIsLiability(to)){
+            if(
+                accountIsLiability(to)
+            ){
 
-                to.balance += amount;
+                to.balance =
+                    Number(
+                        to.balance || 0
+                    ) +
+                    amount;
 
             }else{
 
-                to.balance -= amount;
+                to.balance =
+                    Number(
+                        to.balance || 0
+                    ) -
+                    amount;
 
             }
 
@@ -2211,8 +3008,6 @@ function deleteTransaction(index){
 
     }
 
-
-    /* İşlemi sil */
 
     data.transactions.splice(
         index,
@@ -2225,9 +3020,9 @@ function deleteTransaction(index){
 }
 
 
-/* =========================
+/* =====================================================
    ZARF EKLE
-========================= */
+===================================================== */
 
 function openEnvelope(){
 
@@ -2237,7 +3032,23 @@ function openEnvelope(){
         );
 
 
-    if(!name || !name.trim()){
+    if(
+        !name ||
+        !name.trim()
+    ){
+
+        return;
+
+    }
+
+
+    const budgetText =
+        prompt(
+            "Zarf bütçesi:"
+        );
+
+
+    if(budgetText === null){
 
         return;
 
@@ -2246,13 +3057,14 @@ function openEnvelope(){
 
     const budget =
         parseFloat(
-            prompt(
-                "Zarf bütçesi:"
-            )
+            budgetText
         );
 
 
-    if(!budget || budget <= 0){
+    if(
+        !budget ||
+        budget <= 0
+    ){
 
         alert(
             "Geçerli bir bütçe gir."
@@ -2281,9 +3093,9 @@ function openEnvelope(){
 }
 
 
-/* =========================
+/* =====================================================
    ZARF TRANSFERİ
-========================= */
+===================================================== */
 
 function openTransfer(){
 
@@ -2302,13 +3114,15 @@ function openTransfer(){
 
     const names =
         data.envelopes
-        .map(
-            (x,i) =>
-                (i+1) +
-                ". " +
-                x.name
-        )
-        .join("\n");
+            .map(
+                (envelope,index) =>
+                    (
+                        index + 1
+                    ) +
+                    ". " +
+                    envelope.name
+            )
+            .join("\n");
 
 
     const fromNumber =
@@ -2316,7 +3130,8 @@ function openTransfer(){
             prompt(
                 "Kaynak zarfı seç:\n\n" +
                 names
-            )
+            ),
+            10
         );
 
 
@@ -2325,7 +3140,8 @@ function openTransfer(){
             prompt(
                 "Hedef zarfı seç:\n\n" +
                 names
-            )
+            ),
+            10
         );
 
 
@@ -2333,8 +3149,12 @@ function openTransfer(){
         !fromNumber ||
         !toNumber ||
         fromNumber === toNumber ||
-        !data.envelopes[fromNumber-1] ||
-        !data.envelopes[toNumber-1]
+        !data.envelopes[
+            fromNumber - 1
+        ] ||
+        !data.envelopes[
+            toNumber - 1
+        ]
     ){
 
         alert(
@@ -2354,7 +3174,10 @@ function openTransfer(){
         );
 
 
-    if(!amount || amount <= 0){
+    if(
+        !amount ||
+        amount <= 0
+    ){
 
         alert(
             "Geçerli bir tutar gir."
@@ -2378,14 +3201,20 @@ function openTransfer(){
 
 
     const available =
-        Number(from.budget || 0) -
-        Number(from.spent || 0);
+        Number(
+            from.budget || 0
+        ) -
+        Number(
+            from.spent || 0
+        );
 
 
-    if(amount > available){
+    if(
+        amount > available
+    ){
 
         alert(
-            "Kaynak zarfta yeterli para yok."
+            "Kaynak zarfta yeterli kullanılabilir para yok."
         );
 
         return;
@@ -2394,12 +3223,16 @@ function openTransfer(){
 
 
     from.budget =
-        Number(from.budget || 0) -
+        Number(
+            from.budget || 0
+        ) -
         amount;
 
 
     to.budget =
-        Number(to.budget || 0) +
+        Number(
+            to.budget || 0
+        ) +
         amount;
 
 
@@ -2413,18 +3246,32 @@ function openTransfer(){
 }
 
 
-/* =========================
-   MODALLAR
-========================= */
+/* =====================================================
+   HESAP MODALI
+===================================================== */
 
 function openAccount(){
 
-    document.getElementById(
-        "accountModal"
-    ).classList.add("active");
+    const modal =
+        document.getElementById(
+            "accountModal"
+        );
+
+
+    if(modal){
+
+        modal.classList.add(
+            "active"
+        );
+
+    }
 
 }
 
+
+/* =====================================================
+   HESAP TRANSFER MODALI
+===================================================== */
 
 function openAccountTransfer(){
 
@@ -2444,32 +3291,60 @@ function openAccountTransfer(){
     updateSelects();
 
 
-    document.getElementById(
-        "accountTransferModal"
-    ).classList.add("active");
+    const modal =
+        document.getElementById(
+            "accountTransferModal"
+        );
+
+
+    if(modal){
+
+        modal.classList.add(
+            "active"
+        );
+
+    }
 
 }
 
+
+/* =====================================================
+   İŞLEM MODALI
+===================================================== */
 
 function openTransaction(){
 
     updateSelects();
 
 
-    document.getElementById(
-        "transactionModal"
-    ).classList.add("active");
+    const modal =
+        document.getElementById(
+            "transactionModal"
+        );
+
+
+    if(modal){
+
+        modal.classList.add(
+            "active"
+        );
+
+    }
 
 }
 
+
+/* =====================================================
+   MODALLARI KAPAT
+===================================================== */
 
 function closeModals(){
 
     document
         .querySelectorAll(".modal")
         .forEach(
-            x =>
-                x.classList.remove(
+            modal =>
+                modal.classList.remove(
                     "active"
                 )
         );
@@ -2477,9 +3352,9 @@ function closeModals(){
 }
 
 
-/* =========================
-   BÜTÇELER
-========================= */
+/* =====================================================
+   BÜTÇEDE HARCANAN
+===================================================== */
 
 function getBudgetSpent(
     category,
@@ -2488,47 +3363,59 @@ function getBudgetSpent(
 
     return data.transactions
 
-        .filter(x => {
+        .filter(
+            transaction => {
 
-            if(
-                x.type !== "expense"
-            ){
+                if(
+                    transaction.type !==
+                    "expense"
+                ){
 
-                return false;
+                    return false;
+
+                }
+
+
+                if(
+                    transaction.category !==
+                    category
+                ){
+
+                    return false;
+
+                }
+
+
+                const date =
+                    new Date(
+                        transaction.date
+                    );
+
+
+                const transactionMonth =
+                    date.getFullYear() +
+                    "-" +
+                    String(
+                        date.getMonth() + 1
+                    ).padStart(
+                        2,
+                        "0"
+                    );
+
+
+                return (
+                    transactionMonth ===
+                    month
+                );
 
             }
-
-
-            if(
-                x.category !== category
-            ){
-
-                return false;
-
-            }
-
-
-            const d =
-                new Date(x.date);
-
-
-            const m =
-                d.getFullYear() +
-                "-" +
-                String(
-                    d.getMonth()+1
-                ).padStart(2,"0");
-
-
-            return m === month;
-
-        })
+        )
 
         .reduce(
-            (sum,x) =>
+            (sum,transaction) =>
                 sum +
                 Number(
-                    x.amount || 0
+                    transaction.amount || 0
                 ),
             0
         );
@@ -2536,35 +3423,56 @@ function getBudgetSpent(
 }
 
 
+/* =====================================================
+   BÜTÇE DURUMU
+===================================================== */
+
 function budgetStatus(percent){
 
-    if(percent >= 100){
+    if(
+        percent >= 100
+    ){
 
         return {
+
             text:"Bütçe aşıldı",
+
             className:"negative"
+
         };
 
     }
 
 
-    if(percent >= 75){
+    if(
+        percent >= 75
+    ){
 
         return {
+
             text:"Dikkat",
+
             className:"negative"
+
         };
 
     }
 
 
     return {
+
         text:"Normal",
+
         className:"positive"
+
     };
 
 }
 
+
+/* =====================================================
+   BÜTÇE EKLE
+===================================================== */
 
 function addBudget(){
 
@@ -2584,15 +3492,29 @@ function addBudget(){
     }
 
 
-    const amount =
-        parseFloat(
-            prompt(
-                "Aylık bütçe tutarı:"
-            )
+    const amountText =
+        prompt(
+            "Aylık bütçe tutarı:"
         );
 
 
-    if(!amount || amount <= 0){
+    if(amountText === null){
+
+        return;
+
+    }
+
+
+    const amount =
+        parseFloat(
+            amountText
+        );
+
+
+    if(
+        !amount ||
+        amount <= 0
+    ){
 
         alert(
             "Geçerli bir tutar gir."
@@ -2612,13 +3534,15 @@ function addBudget(){
 
         const list =
             data.envelopes
-            .map(
-                (e,i) =>
-                    (i+1) +
-                    ". " +
-                    e.name
-            )
-            .join("\n");
+                .map(
+                    (envelope,index) =>
+                        (
+                            index + 1
+                        ) +
+                        ". " +
+                        envelope.name
+                )
+                .join("\n");
 
 
         const choice =
@@ -2629,17 +3553,31 @@ function addBudget(){
             );
 
 
-        const n =
-            parseInt(choice);
+        if(choice === null){
+
+            return;
+
+        }
+
+
+        const number =
+            parseInt(
+                choice,
+                10
+            );
 
 
         if(
-            n > 0 &&
-            data.envelopes[n-1]
+            number > 0 &&
+            data.envelopes[
+                number - 1
+            ]
         ){
 
             envelopeId =
-                data.envelopes[n-1].id;
+                data.envelopes[
+                    number - 1
+                ].id;
 
         }
 
@@ -2650,12 +3588,17 @@ function addBudget(){
         currentMonth();
 
 
+    const cleanCategory =
+        category.trim();
+
+
     const existing =
         data.budgets.find(
-            x =>
-                x.category ===
-                category.trim() &&
-                x.month === month
+            budget =>
+                budget.category ===
+                    cleanCategory &&
+                budget.month ===
+                    month
         );
 
 
@@ -2674,11 +3617,13 @@ function addBudget(){
             id:Date.now(),
 
             category:
-                category.trim(),
+                cleanCategory,
 
-            amount:amount,
+            amount:
+                amount,
 
-            month:month,
+            month:
+                month,
 
             envelopeId:
                 envelopeId
@@ -2693,29 +3638,9 @@ function addBudget(){
 }
 
 
-function deleteBudget(index){
-
-    if(
-        !confirm(
-            "Bu bütçeyi silmek istediğine emin misin?"
-        )
-    ){
-
-        return;
-
-    }
-
-
-    data.budgets.splice(
-        index,
-        1
-    );
-
-
-    save();
-
-}
-
+/* =====================================================
+   BÜTÇE DÜZENLE
+===================================================== */
 
 function editBudget(index){
 
@@ -2723,19 +3648,37 @@ function editBudget(index){
         data.budgets[index];
 
 
-    if(!budget) return;
+    if(!budget){
+
+        return;
+
+    }
+
+
+    const amountText =
+        prompt(
+            "Yeni bütçe tutarı:",
+            budget.amount
+        );
+
+
+    if(amountText === null){
+
+        return;
+
+    }
 
 
     const amount =
         parseFloat(
-            prompt(
-                "Yeni bütçe tutarı:",
-                budget.amount
-            )
+            amountText
         );
 
 
-    if(!amount || amount <= 0){
+    if(
+        !amount ||
+        amount <= 0
+    ){
 
         alert(
             "Geçerli bir tutar gir."
@@ -2755,6 +3698,49 @@ function editBudget(index){
 }
 
 
+/* =====================================================
+   BÜTÇE SİL
+===================================================== */
+
+function deleteBudget(index){
+
+    if(
+        !data.budgets[index]
+    ){
+
+        return;
+
+    }
+
+
+    const confirmed =
+        confirm(
+            "Bu bütçeyi silmek istediğine emin misin?"
+        );
+
+
+    if(!confirmed){
+
+        return;
+
+    }
+
+
+    data.budgets.splice(
+        index,
+        1
+    );
+
+
+    save();
+
+}
+
+
+/* =====================================================
+   BÜTÇELERİ GÖSTER
+===================================================== */
+
 function renderBudgets(){
 
     const grid =
@@ -2763,7 +3749,11 @@ function renderBudgets(){
         );
 
 
-    if(!grid) return;
+    if(!grid){
+
+        return;
+
+    }
 
 
     let card =
@@ -2779,8 +3769,10 @@ function renderBudgets(){
                 "section"
             );
 
+
         card.className =
             "card";
+
 
         card.id =
             "budgetCard";
@@ -2788,15 +3780,17 @@ function renderBudgets(){
 
         card.innerHTML = `
 
-            <h2>📊 Aylık Bütçe</h2>
+<h2>
+📊 Aylık Bütçe
+</h2>
 
-            <div id="budgetList"></div>
+<div id="budgetList"></div>
 
-            <button onclick="addBudget()">
-                + Bütçe Ekle
-            </button>
+<button onclick="addBudget()">
++ Bütçe Ekle
+</button>
 
-        `;
+`;
 
 
         grid.insertBefore(
@@ -2813,7 +3807,11 @@ function renderBudgets(){
         );
 
 
-    if(!container) return;
+    if(!container){
+
+        return;
+
+    }
 
 
     const month =
@@ -2822,8 +3820,9 @@ function renderBudgets(){
 
     const budgets =
         data.budgets.filter(
-            x =>
-                x.month === month
+            budget =>
+                budget.month ===
+                month
         );
 
 
@@ -2831,11 +3830,11 @@ function renderBudgets(){
 
         container.innerHTML = `
 
-            <div class="muted">
-                Bu ay henüz bütçe oluşturulmadı.
-            </div>
+<div class="muted">
+Bu ay henüz bütçe oluşturulmadı.
+</div>
 
-        `;
+`;
 
         return;
 
@@ -2843,228 +3842,252 @@ function renderBudgets(){
 
 
     container.innerHTML =
-        budgets.map(
-            budget => {
+        budgets
+            .map(
+                budget => {
 
-                const spent =
-                    getBudgetSpent(
-                        budget.category,
-                        month
-                    );
-
-
-                const remaining =
-                    Number(
-                        budget.amount
-                    ) - spent;
+                    const spent =
+                        getBudgetSpent(
+                            budget.category,
+                            month
+                        );
 
 
-                const percent =
-                    Number(
-                        budget.amount
-                    ) > 0
-
-                    ? (
-                        spent /
+                    const planned =
                         Number(
-                            budget.amount
-                        )
-                    ) * 100
-
-                    : 0;
+                            budget.amount || 0
+                        );
 
 
-                const safePercent =
-                    Math.min(
-                        Math.max(
-                            percent,
-                            0
-                        ),
-                        100
-                    );
+                    const remaining =
+                        planned -
+                        spent;
 
 
-                const status =
-                    budgetStatus(
-                        percent
-                    );
+                    const percent =
+                        planned > 0
+                        ? (
+                            spent /
+                            planned
+                        ) * 100
+                        : 0;
 
 
-                const linkedEnvelope =
-                    data.envelopes.find(
-                        e =>
-                            String(e.id) ===
-                            String(
-                                budget.envelopeId
-                            )
-                    );
+                    const safePercent =
+                        Math.min(
+                            Math.max(
+                                percent,
+                                0
+                            ),
+                            100
+                        );
 
 
-                const realIndex =
-                    data.budgets.indexOf(
-                        budget
-                    );
+                    const status =
+                        budgetStatus(
+                            percent
+                        );
 
 
-                return `
-
-                <div class="account">
-
-                    <div class="account-top">
-
-                        <div>
-
-                            <strong>
-                                ${escapeHTML(
-                                    budget.category
-                                )}
-                            </strong>
-
-                            <br>
-
-                            <small>
-                                Planlanan:
-                                ${money(
-                                    budget.amount
-                                )}
-                            </small>
-
-                            <br>
-
-                            <small>
-                                📦 Zarf:
-                                ${
-                                    linkedEnvelope
-                                    ? escapeHTML(
-                                        linkedEnvelope.name
-                                      )
-                                    : "Bağlı değil"
-                                }
-                            </small>
-
-                        </div>
+                    const linkedEnvelope =
+                        data.envelopes.find(
+                            envelope =>
+                                String(
+                                    envelope.id
+                                ) ===
+                                String(
+                                    budget.envelopeId
+                                )
+                        );
 
 
-                        <strong class="${
-                            remaining < 0
-                            ? "negative"
-                            : "positive"
-                        }">
-
-                            ${money(
-                                remaining
-                            )}
-
-                        </strong>
-
-                    </div>
+                    const realIndex =
+                        data.budgets.indexOf(
+                            budget
+                        );
 
 
-                    <div style="
-                        height:8px;
-                        background:#eee;
-                        border-radius:20px;
-                        overflow:hidden;
-                        margin:9px 0;
-                    ">
+                    return `
 
-                        <div style="
-                            height:100%;
-                            width:${safePercent}%;
-                            background:#f07818;
-                            border-radius:20px;
-                        "></div>
+<div class="account">
 
-                    </div>
+<div class="account-top">
 
+<div>
 
-                    <div class="row">
+<strong>
+${escapeHTML(
+    budget.category
+)}
+</strong>
 
-                        <small>
-                            Harcanan:
-                            ${money(spent)}
-                        </small>
+<br>
 
-                        <small class="${
-                            status.className
-                        }">
+<small>
+Planlanan:
+${money(planned)}
+</small>
 
-                            ${Math.round(
-                                percent
-                            )}%
+<br>
 
-                            ·
+<small>
+📦 Zarf:
+${
+    linkedEnvelope
+    ? escapeHTML(
+        linkedEnvelope.name
+      )
+    : "Bağlı değil"
+}
+</small>
 
-                            ${status.text}
-
-                        </small>
-
-                    </div>
+</div>
 
 
-                    <div class="account-actions">
+<strong class="${
+    remaining < 0
+    ? "negative"
+    : "positive"
+}">
 
-                        <button
-                            class="small"
-                            onclick="editBudget(${realIndex})">
+${money(remaining)}
 
-                            ✏️ Düzenle
+</strong>
 
-                        </button>
+</div>
 
-                        <button
-                            class="small danger"
-                            onclick="deleteBudget(${realIndex})">
 
-                            🗑️ Sil
+<div class="progress">
 
-                        </button>
+<div
+    class="progress-bar"
+    style="width:${safePercent}%"
+></div>
 
-                    </div>
+</div>
 
-                </div>
 
-                `;
+<div class="row">
 
-            }
-        ).join("");
+<small>
+Harcanan:
+${money(spent)}
+</small>
+
+<small
+    class="${status.className}"
+>
+
+${Math.round(percent)}%
+
+·
+
+${status.text}
+
+</small>
+
+</div>
+
+
+<div class="account-actions">
+
+<button
+    class="small"
+    onclick="editBudget(${realIndex})"
+>
+✏️ Düzenle
+</button>
+
+<button
+    class="small danger"
+    onclick="deleteBudget(${realIndex})"
+>
+🗑️ Sil
+</button>
+
+</div>
+
+</div>
+
+`;
+
+                }
+            )
+            .join("");
 
 }
 
 
-/* =========================
+/* =====================================================
    TARİH
-========================= */
+===================================================== */
 
-const dateElement =
-    document.getElementById("date");
+function updateDate(){
 
-
-if(dateElement){
-
-    dateElement.innerText =
-        new Date().toLocaleDateString(
-            "tr-TR",
-            {
-                day:"numeric",
-                month:"long",
-                year:"numeric"
-            }
+    const dateElement =
+        document.getElementById(
+            "date"
         );
 
+
+    if(dateElement){
+
+        dateElement.innerText =
+            new Date().toLocaleDateString(
+                "tr-TR",
+                {
+                    day:"numeric",
+                    month:"long",
+                    year:"numeric"
+                }
+            );
+
+    }
+
 }
 
 
-/* =========================
+/* =====================================================
+   MODAL DIŞINA BASINCA KAPAT
+===================================================== */
+
+document
+    .querySelectorAll(".modal")
+    .forEach(
+        modal => {
+
+            modal.addEventListener(
+                "click",
+                event => {
+
+                    if(
+                        event.target ===
+                        modal
+                    ){
+
+                        closeModals();
+
+                    }
+
+                }
+            );
+
+        }
+    );
+
+
+/* =====================================================
    BAŞLANGIÇ
-========================= */
+===================================================== */
+
+updateDate();
 
 render();
 
 
-/* =========================
-   GLOBAL FONKSİYONLAR
-========================= */
+/* =====================================================
+   INLINE ONCLICK İÇİN GLOBAL FONKSİYONLAR
+===================================================== */
 
 window.openAccount =
     openAccount;
