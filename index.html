@@ -1054,15 +1054,24 @@ function renderTransactions(){
     }
 
 
-    el.innerHTML =
+    const transactions =
         data.transactions
-        .slice()
+        .map((x,index) => ({
+            transaction:x,
+            index:index
+        }))
         .reverse()
-        .slice(0,10)
-        .map((x) => {
+        .slice(0,10);
+
+
+    el.innerHTML =
+        transactions.map(item => {
+
+            const x =
+                item.transaction;
 
             const realIndex =
-                data.transactions.indexOf(x);
+                item.index;
 
 
             const isIncome =
@@ -1091,8 +1100,7 @@ function renderTransactions(){
                     <small class="muted">
 
                         ${escapeHTML(
-                            x.category ||
-                            ""
+                            x.category || ""
                         )}
 
                         ${
@@ -1131,6 +1139,7 @@ function renderTransactions(){
 
                     </strong>
 
+
                     <div style="
                         display:flex;
                         gap:5px;
@@ -1162,63 +1171,7 @@ function renderTransactions(){
 
             `;
 
-        })
-        .join("");
-
-}
-
-
-    el.innerHTML =
-        data.transactions
-        .slice()
-        .reverse()
-        .slice(0,10)
-        .map(x => `
-
-            <div class="row">
-
-                <span>
-
-                    <strong>
-                        ${escapeHTML(
-                            x.description ||
-                            x.category ||
-                            "İşlem"
-                        )}
-                    </strong>
-
-                    <br>
-
-                    <small>
-                        ${escapeHTML(
-                            x.category || ""
-                        )}
-                    </small>
-
-                </span>
-
-                <strong class="${
-                    x.type === "income"
-                    ? "positive"
-                    : "negative"
-                }">
-
-                    ${
-                        x.type === "income"
-                        ? "+"
-                        : x.type === "expense"
-                        ? "-"
-                        : ""
-                    }
-
-                    ${money(x.amount)}
-
-                </strong>
-
-            </div>
-
-        `)
-        .join("");
+        }).join("");
 
 }
 
@@ -1433,9 +1386,15 @@ function editAccount(index){
 
 function deleteAccount(index){
 
+    const account =
+        data.accounts[index];
+
+    if(!account) return;
+
+
     if(
         !confirm(
-            "Bu hesabı silmek istediğine emin misin?"
+            `"${account.name}" hesabını silmek istediğine emin misin?`
         )
     ){
 
@@ -1653,463 +1612,9 @@ function addTransaction(){
         return;
 
     }
-/* =========================
-   İŞLEM DÜZENLE
-========================= */
 
-function editTransaction(index){
 
-    const transaction =
-        data.transactions[index];
-
-    if(!transaction) return;
-
-
-    if(transaction.type === "transfer"){
-
-        alert(
-            "Hesap transferleri şu an bu bölümden düzenlenemez."
-        );
-
-        return;
-
-    }
-
-
-    const oldAmount =
-        Number(transaction.amount || 0);
-
-
-    const oldAccountId =
-        transaction.accountId;
-
-
-    const oldEnvelopeId =
-        transaction.envelopeId;
-
-
-    const newAmount =
-        parseFloat(
-            prompt(
-                "Yeni işlem tutarı:",
-                oldAmount
-            )
-        );
-
-
-    if(
-        !newAmount ||
-        newAmount <= 0
-    ){
-
-        alert(
-            "Geçerli bir tutar gir."
-        );
-
-        return;
-
-    }
-
-
-    const newDescription =
-        prompt(
-            "Açıklama:",
-            transaction.description || ""
-        );
-
-
-    if(newDescription === null)
-        return;
-
-
-    const newCategory =
-        prompt(
-            "Kategori:",
-            transaction.category || ""
-        );
-
-
-    if(newCategory === null)
-        return;
-
-
-    /*
-       Eski hesabı geri al
-    */
-
-    if(oldAccountId){
-
-        const oldAccount =
-            data.accounts.find(
-                x =>
-                    String(x.id) ===
-                    String(oldAccountId)
-            );
-
-
-        if(oldAccount){
-
-            if(
-                accountIsLiability(
-                    oldAccount
-                )
-            ){
-
-                if(
-                    transaction.type ===
-                    "expense"
-                ){
-
-                    oldAccount.balance -=
-                        oldAmount;
-
-                }else if(
-                    transaction.type ===
-                    "income"
-                ){
-
-                    oldAccount.balance +=
-                        oldAmount;
-
-                }
-
-            }else{
-
-                if(
-                    transaction.type ===
-                    "income"
-                ){
-
-                    oldAccount.balance -=
-                        oldAmount;
-
-                }else if(
-                    transaction.type ===
-                    "expense"
-                ){
-
-                    oldAccount.balance +=
-                        oldAmount;
-
-                }
-
-            }
-
-        }
-
-    }
-
-
-    /*
-       Eski zarf harcamasını geri al
-    */
-
-    if(
-        transaction.type === "expense" &&
-        oldEnvelopeId
-    ){
-
-        const oldEnvelope =
-            data.envelopes.find(
-                x =>
-                    String(x.id) ===
-                    String(oldEnvelopeId)
-            );
-
-
-        if(oldEnvelope){
-
-            oldEnvelope.spent =
-                Math.max(
-                    0,
-                    Number(
-                        oldEnvelope.spent || 0
-                    ) - oldAmount
-                );
-
-        }
-
-    }
-
-
-    /*
-       Yeni değerleri oluştur
-    */
-
-    transaction.amount =
-        newAmount;
-
-    transaction.description =
-        newDescription.trim();
-
-    transaction.category =
-        newCategory.trim();
-
-
-    /*
-       Yeni hesabı uygula
-    */
-
-    if(transaction.accountId){
-
-        const newAccount =
-            data.accounts.find(
-                x =>
-                    String(x.id) ===
-                    String(
-                        transaction.accountId
-                    )
-            );
-
-
-        if(newAccount){
-
-            if(
-                accountIsLiability(
-                    newAccount
-                )
-            ){
-
-                if(
-                    transaction.type ===
-                    "expense"
-                ){
-
-                    newAccount.balance +=
-                        newAmount;
-
-                }else if(
-                    transaction.type ===
-                    "income"
-                ){
-
-                    newAccount.balance -=
-                        newAmount;
-
-                }
-
-            }else{
-
-                if(
-                    transaction.type ===
-                    "income"
-                ){
-
-                    newAccount.balance +=
-                        newAmount;
-
-                }else if(
-                    transaction.type ===
-                    "expense"
-                ){
-
-                    newAccount.balance -=
-                        newAmount;
-
-                }
-
-            }
-
-        }
-
-    }
-
-
-    /*
-       Yeni zarf harcamasını uygula
-    */
-
-    if(
-        transaction.type === "expense" &&
-        transaction.envelopeId
-    ){
-
-        const newEnvelope =
-            data.envelopes.find(
-                x =>
-                    String(x.id) ===
-                    String(
-                        transaction.envelopeId
-                    )
-            );
-
-
-        if(newEnvelope){
-
-            newEnvelope.spent =
-                Number(
-                    newEnvelope.spent || 0
-                ) + newAmount;
-
-        }
-
-    }
-
-
-    save();
-
-}
-
-
-/* =========================
-   İŞLEM SİL
-========================= */
-
-function deleteTransaction(index){
-
-    const transaction =
-        data.transactions[index];
-
-    if(!transaction) return;
-
-
-    const confirmed =
-        confirm(
-            "Bu işlemi silmek istediğine emin misin?\n\n" +
-            (
-                transaction.description ||
-                transaction.category ||
-                "İşlem"
-            ) +
-            "\n" +
-            money(
-                transaction.amount
-            )
-        );
-
-
-    if(!confirmed) return;
-
-
-    const amount =
-        Number(
-            transaction.amount || 0
-        );
-
-
-    /*
-       Hesap bakiyesini geri al
-    */
-
-    if(
-        transaction.type === "expense" ||
-        transaction.type === "income"
-    ){
-
-        if(transaction.accountId){
-
-            const account =
-                data.accounts.find(
-                    x =>
-                        String(x.id) ===
-                        String(
-                            transaction.accountId
-                        )
-                );
-
-
-            if(account){
-
-                if(
-                    accountIsLiability(
-                        account
-                    )
-                ){
-
-                    if(
-                        transaction.type ===
-                        "expense"
-                    ){
-
-                        account.balance -=
-                            amount;
-
-                    }else{
-
-                        account.balance +=
-                            amount;
-
-                    }
-
-                }else{
-
-                    if(
-                        transaction.type ===
-                        "expense"
-                    ){
-
-                        account.balance +=
-                            amount;
-
-                    }else{
-
-                        account.balance -=
-                            amount;
-
-                    }
-
-                }
-
-            }
-
-        }
-
-
-        /*
-           Zarf harcamasını geri al
-        */
-
-        if(
-            transaction.type ===
-            "expense" &&
-            transaction.envelopeId
-        ){
-
-            const envelope =
-                data.envelopes.find(
-                    x =>
-                        String(x.id) ===
-                        String(
-                            transaction.envelopeId
-                        )
-                );
-
-
-            if(envelope){
-
-                envelope.spent =
-                    Math.max(
-                        0,
-                        Number(
-                            envelope.spent || 0
-                        ) - amount
-                    );
-
-            }
-
-        }
-
-    }
-
-
-    /*
-       İşlemi sil
-    */
-
-    data.transactions.splice(
-        index,
-        1
-    );
-
-
-    save();
-
-}
-
-    /*
-       Bütçe kategorisi için
-       bağlı zarfı otomatik bul
-    */
+    /* Bütçeye bağlı zarfı otomatik bul */
 
     if(
         type === "expense" &&
@@ -2210,7 +1715,7 @@ function deleteTransaction(index){
     }
 
 
-    /* Gideri zarfa ekle */
+    /* Zarf harcaması */
 
     if(
         type === "expense" &&
@@ -2251,6 +1756,471 @@ function deleteTransaction(index){
 
 
     closeModals();
+
+}
+
+
+/* =========================
+   İŞLEM DÜZENLE
+========================= */
+
+function editTransaction(index){
+
+    const transaction =
+        data.transactions[index];
+
+    if(!transaction) return;
+
+
+    if(transaction.type === "transfer"){
+
+        alert(
+            "Hesap transferleri şu an düzenlenemez."
+        );
+
+        return;
+
+    }
+
+
+    const oldAmount =
+        Number(transaction.amount || 0);
+
+
+    const oldAccountId =
+        transaction.accountId;
+
+
+    const oldEnvelopeId =
+        transaction.envelopeId;
+
+
+    const newAmount =
+        parseFloat(
+            prompt(
+                "Yeni işlem tutarı:",
+                oldAmount
+            )
+        );
+
+
+    if(
+        !newAmount ||
+        newAmount <= 0
+    ){
+
+        alert(
+            "Geçerli bir tutar gir."
+        );
+
+        return;
+
+    }
+
+
+    const newDescription =
+        prompt(
+            "Açıklama:",
+            transaction.description || ""
+        );
+
+
+    if(newDescription === null)
+        return;
+
+
+    const newCategory =
+        prompt(
+            "Kategori:",
+            transaction.category || ""
+        );
+
+
+    if(newCategory === null)
+        return;
+
+
+    /* Eski hesap hareketini geri al */
+
+    if(oldAccountId){
+
+        const oldAccount =
+            data.accounts.find(
+                x =>
+                    String(x.id) ===
+                    String(oldAccountId)
+            );
+
+
+        if(oldAccount){
+
+            if(
+                accountIsLiability(oldAccount)
+            ){
+
+                if(
+                    transaction.type === "expense"
+                ){
+
+                    oldAccount.balance -=
+                        oldAmount;
+
+                }else if(
+                    transaction.type === "income"
+                ){
+
+                    oldAccount.balance +=
+                        oldAmount;
+
+                }
+
+            }else{
+
+                if(
+                    transaction.type === "income"
+                ){
+
+                    oldAccount.balance -=
+                        oldAmount;
+
+                }else if(
+                    transaction.type === "expense"
+                ){
+
+                    oldAccount.balance +=
+                        oldAmount;
+
+                }
+
+            }
+
+        }
+
+    }
+
+
+    /* Eski zarf harcamasını geri al */
+
+    if(
+        transaction.type === "expense" &&
+        oldEnvelopeId
+    ){
+
+        const oldEnvelope =
+            data.envelopes.find(
+                x =>
+                    String(x.id) ===
+                    String(oldEnvelopeId)
+            );
+
+
+        if(oldEnvelope){
+
+            oldEnvelope.spent =
+                Math.max(
+                    0,
+                    Number(
+                        oldEnvelope.spent || 0
+                    ) - oldAmount
+                );
+
+        }
+
+    }
+
+
+    /* Yeni değerler */
+
+    transaction.amount =
+        newAmount;
+
+    transaction.description =
+        newDescription.trim();
+
+    transaction.category =
+        newCategory.trim();
+
+
+    /* Yeni hesap hareketini uygula */
+
+    if(transaction.accountId){
+
+        const newAccount =
+            data.accounts.find(
+                x =>
+                    String(x.id) ===
+                    String(transaction.accountId)
+            );
+
+
+        if(newAccount){
+
+            if(
+                accountIsLiability(newAccount)
+            ){
+
+                if(
+                    transaction.type === "expense"
+                ){
+
+                    newAccount.balance +=
+                        newAmount;
+
+                }else if(
+                    transaction.type === "income"
+                ){
+
+                    newAccount.balance -=
+                        newAmount;
+
+                }
+
+            }else{
+
+                if(
+                    transaction.type === "income"
+                ){
+
+                    newAccount.balance +=
+                        newAmount;
+
+                }else if(
+                    transaction.type === "expense"
+                ){
+
+                    newAccount.balance -=
+                        newAmount;
+
+                }
+
+            }
+
+        }
+
+    }
+
+
+    /* Yeni zarf harcamasını uygula */
+
+    if(
+        transaction.type === "expense" &&
+        transaction.envelopeId
+    ){
+
+        const newEnvelope =
+            data.envelopes.find(
+                x =>
+                    String(x.id) ===
+                    String(transaction.envelopeId)
+            );
+
+
+        if(newEnvelope){
+
+            newEnvelope.spent =
+                Number(
+                    newEnvelope.spent || 0
+                ) + newAmount;
+
+        }
+
+    }
+
+
+    save();
+
+}
+
+
+/* =========================
+   İŞLEM SİL
+========================= */
+
+function deleteTransaction(index){
+
+    const transaction =
+        data.transactions[index];
+
+    if(!transaction) return;
+
+
+    const confirmed =
+        confirm(
+            "Bu işlemi silmek istediğine emin misin?\n\n" +
+            (
+                transaction.description ||
+                transaction.category ||
+                "İşlem"
+            ) +
+            "\n" +
+            money(transaction.amount)
+        );
+
+
+    if(!confirmed) return;
+
+
+    const amount =
+        Number(
+            transaction.amount || 0
+        );
+
+
+    /* =====================
+       NORMAL GELİR / GİDER
+    ===================== */
+
+    if(
+        transaction.type === "expense" ||
+        transaction.type === "income"
+    ){
+
+        if(transaction.accountId){
+
+            const account =
+                data.accounts.find(
+                    x =>
+                        String(x.id) ===
+                        String(transaction.accountId)
+                );
+
+
+            if(account){
+
+                if(
+                    accountIsLiability(account)
+                ){
+
+                    if(
+                        transaction.type === "expense"
+                    ){
+
+                        account.balance -= amount;
+
+                    }else{
+
+                        account.balance += amount;
+
+                    }
+
+                }else{
+
+                    if(
+                        transaction.type === "expense"
+                    ){
+
+                        account.balance += amount;
+
+                    }else{
+
+                        account.balance -= amount;
+
+                    }
+
+                }
+
+            }
+
+        }
+
+
+        /* Zarf harcamasını geri al */
+
+        if(
+            transaction.type === "expense" &&
+            transaction.envelopeId
+        ){
+
+            const envelope =
+                data.envelopes.find(
+                    x =>
+                        String(x.id) ===
+                        String(transaction.envelopeId)
+                );
+
+
+            if(envelope){
+
+                envelope.spent =
+                    Math.max(
+                        0,
+                        Number(
+                            envelope.spent || 0
+                        ) - amount
+                    );
+
+            }
+
+        }
+
+    }
+
+
+    /* =====================
+       HESAP TRANSFERİ
+    ===================== */
+
+    if(
+        transaction.type === "transfer"
+    ){
+
+        const from =
+            data.accounts.find(
+                x =>
+                    String(x.id) ===
+                    String(transaction.accountId)
+            );
+
+
+        const to =
+            data.accounts.find(
+                x =>
+                    String(x.id) ===
+                    String(transaction.targetAccountId)
+            );
+
+
+        if(from){
+
+            if(accountIsLiability(from)){
+
+                from.balance -= amount;
+
+            }else{
+
+                from.balance += amount;
+
+            }
+
+        }
+
+
+        if(to){
+
+            if(accountIsLiability(to)){
+
+                to.balance += amount;
+
+            }else{
+
+                to.balance -= amount;
+
+            }
+
+        }
+
+    }
+
+
+    /* İşlemi sil */
+
+    data.transactions.splice(
+        index,
+        1
+    );
+
+
+    save();
 
 }
 
@@ -3093,7 +3063,6 @@ render();
 
 
 /* =========================
-   iPHONE / SAFARI İÇİN
    GLOBAL FONKSİYONLAR
 ========================= */
 
@@ -3129,7 +3098,7 @@ window.editTransaction =
 
 window.deleteTransaction =
     deleteTransaction;
-    
+
 window.openEnvelope =
     openEnvelope;
 
