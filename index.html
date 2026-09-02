@@ -1059,6 +1059,120 @@ function renderTransactions(){
         .slice()
         .reverse()
         .slice(0,10)
+        .map((x) => {
+
+            const realIndex =
+                data.transactions.indexOf(x);
+
+
+            const isIncome =
+                x.type === "income";
+
+            const isTransfer =
+                x.type === "transfer";
+
+
+            return `
+
+            <div class="row">
+
+                <div style="flex:1">
+
+                    <strong>
+                        ${escapeHTML(
+                            x.description ||
+                            x.category ||
+                            "İşlem"
+                        )}
+                    </strong>
+
+                    <br>
+
+                    <small class="muted">
+
+                        ${escapeHTML(
+                            x.category ||
+                            ""
+                        )}
+
+                        ${
+                            isTransfer
+                            ? " · Hesap Transferi"
+                            : ""
+                        }
+
+                    </small>
+
+                </div>
+
+
+                <div style="
+                    text-align:right;
+                    margin-left:10px;
+                ">
+
+                    <strong class="${
+                        isIncome
+                        ? "positive"
+                        : isTransfer
+                        ? ""
+                        : "negative"
+                    }">
+
+                        ${
+                            isIncome
+                            ? "+"
+                            : isTransfer
+                            ? ""
+                            : "-"
+                        }
+
+                        ${money(x.amount)}
+
+                    </strong>
+
+                    <div style="
+                        display:flex;
+                        gap:5px;
+                        justify-content:flex-end;
+                        margin-top:6px;
+                    ">
+
+                        <button
+                            class="small"
+                            onclick="editTransaction(${realIndex})">
+
+                            ✏️
+
+                        </button>
+
+                        <button
+                            class="small danger"
+                            onclick="deleteTransaction(${realIndex})">
+
+                            🗑️
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            `;
+
+        })
+        .join("");
+
+}
+
+
+    el.innerHTML =
+        data.transactions
+        .slice()
+        .reverse()
+        .slice(0,10)
         .map(x => `
 
             <div class="row">
