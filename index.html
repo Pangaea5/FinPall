@@ -1260,7 +1260,435 @@ function calculateLiabilities(){
 /* =====================================================
    ANA RENDER
 ===================================================== */
+/* =====================================================
+   DASHBOARD
+===================================================== */
 
+function renderDashboard(){
+
+    const incomeElement =
+        document.getElementById(
+            "dashboardIncome"
+        );
+
+    const expenseElement =
+        document.getElementById(
+            "dashboardExpense"
+        );
+
+    const savingElement =
+        document.getElementById(
+            "dashboardSaving"
+        );
+
+    const savingRateElement =
+        document.getElementById(
+            "dashboardSavingRate"
+        );
+
+    const categoryElement =
+        document.getElementById(
+            "topCategories"
+        );
+
+    const budgetElement =
+        document.getElementById(
+            "dashboardBudget"
+        );
+
+
+    const now =
+        new Date();
+
+    const month =
+        now.getMonth();
+
+    const year =
+        now.getFullYear();
+
+
+    let income = 0;
+
+    let expense = 0;
+
+    const categories = {};
+
+
+    data.transactions.forEach(
+        transaction => {
+
+            if(
+                transaction.type !== "income" &&
+                transaction.type !== "expense"
+            ){
+
+                return;
+
+            }
+
+
+            const date =
+                new Date(
+                    transaction.date
+                );
+
+
+            if(
+                date.getMonth() !== month ||
+                date.getFullYear() !== year
+            ){
+
+                return;
+
+            }
+
+
+            const amount =
+                Number(
+                    transaction.amount || 0
+                );
+
+
+            if(
+                transaction.type === "income"
+            ){
+
+                income += amount;
+
+            }
+
+
+            if(
+                transaction.type === "expense"
+            ){
+
+                expense += amount;
+
+
+                const category =
+                    transaction.category ||
+                    "Diğer";
+
+
+                categories[category] =
+                    (
+                        categories[category] ||
+                        0
+                    ) +
+                    amount;
+
+            }
+
+        }
+    );
+
+
+    const saving =
+        income - expense;
+
+
+    const savingRate =
+        income > 0
+        ? (
+            saving /
+            income
+        ) * 100
+        : 0;
+
+
+    if(incomeElement){
+
+        incomeElement.innerText =
+            money(income);
+
+    }
+
+
+    if(expenseElement){
+
+        expenseElement.innerText =
+            money(expense);
+
+    }
+
+
+    if(savingElement){
+
+        savingElement.innerText =
+            money(saving);
+
+        savingElement.className =
+            saving >= 0
+            ? "positive"
+            : "negative";
+
+    }
+
+
+    if(savingRateElement){
+
+        savingRateElement.innerText =
+            "%" +
+            Math.round(
+                savingRate
+            );
+
+        savingRateElement.className =
+            savingRate >= 0
+            ? "positive"
+            : "negative";
+
+    }
+
+
+    /* =========================
+       KATEGORİLER
+    ========================= */
+
+    if(categoryElement){
+
+        const sortedCategories =
+            Object.entries(
+                categories
+            )
+            .sort(
+                (a,b) =>
+                    b[1] - a[1]
+            )
+            .slice(
+                0,
+                5
+            );
+
+
+        if(
+            !sortedCategories.length
+        ){
+
+            categoryElement.innerHTML =
+                '<div class="muted">Bu ay henüz harcama yok.</div>';
+
+        }else{
+
+            const maxAmount =
+                sortedCategories[0][1];
+
+
+            categoryElement.innerHTML =
+                sortedCategories
+                    .map(
+                        item => {
+
+                            const name =
+                                item[0];
+
+                            const amount =
+                                item[1];
+
+
+                            const percent =
+                                maxAmount > 0
+                                ? (
+                                    amount /
+                                    maxAmount
+                                ) * 100
+                                : 0;
+
+
+                            return `
+
+<div class="category-row">
+
+<div class="category-name">
+
+${escapeHTML(name)}
+
+</div>
+
+
+<div class="category-progress">
+
+<div
+    class="category-progress-bar"
+    style="width:${percent}%"
+></div>
+
+</div>
+
+
+<div class="category-amount">
+
+${money(amount)}
+
+</div>
+
+</div>
+
+`;
+
+                        }
+                    )
+                    .join("");
+
+        }
+
+    }
+
+
+    /* =========================
+       BÜTÇE
+    ========================= */
+
+    if(budgetElement){
+
+        const budgets =
+            data.budgets.filter(
+                budget =>
+                    budget.month ===
+                    currentMonth()
+            );
+
+
+        if(!budgets.length){
+
+            budgetElement.innerHTML =
+                '<div class="muted">Bu ay henüz bütçe oluşturulmadı.</div>';
+
+        }else{
+
+            let totalPlanned = 0;
+
+            let totalSpent = 0;
+
+
+            budgets.forEach(
+                budget => {
+
+                    totalPlanned +=
+                        Number(
+                            budget.amount || 0
+                        );
+
+
+                    totalSpent +=
+                        getBudgetSpent(
+                            budget.category,
+                            currentMonth()
+                        );
+
+                }
+            );
+
+
+            const totalRemaining =
+                totalPlanned -
+                totalSpent;
+
+
+            const totalPercent =
+                totalPlanned > 0
+                ? (
+                    totalSpent /
+                    totalPlanned
+                ) * 100
+                : 0;
+
+
+            const safePercent =
+                Math.min(
+                    Math.max(
+                        totalPercent,
+                        0
+                    ),
+                    100
+                );
+
+
+            budgetElement.innerHTML = `
+
+<div class="dashboard-budget-row">
+
+<div class="dashboard-budget-top">
+
+<strong>
+Toplam Bütçe
+</strong>
+
+<strong>
+${money(totalPlanned)}
+</strong>
+
+</div>
+
+</div>
+
+
+<div class="dashboard-budget-row">
+
+<div class="dashboard-budget-top">
+
+<span>
+Harcanan
+</span>
+
+<strong class="negative">
+${money(totalSpent)}
+</strong>
+
+</div>
+
+</div>
+
+
+<div class="dashboard-budget-row">
+
+<div class="dashboard-budget-top">
+
+<span>
+Kalan
+</span>
+
+<strong class="${
+    totalRemaining >= 0
+    ? "positive"
+    : "negative"
+}">
+${money(totalRemaining)}
+</strong>
+
+</div>
+
+
+<div class="progress">
+
+<div
+    class="progress-bar"
+    style="width:${safePercent}%"
+></div>
+
+</div>
+
+
+<small class="${
+    totalPercent >= 100
+    ? "negative"
+    : "muted"
+}">
+
+%${Math.round(totalPercent)}
+kullanıldı
+
+</small>
+
+</div>
+
+`;
+
+        }
+
+    }
+
+}
 function render(){
 
     const assets =
