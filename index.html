@@ -247,23 +247,6 @@ label{
     flex:1;
 }
 
-.bottom{
-    position:fixed;
-    bottom:0;
-    left:0;
-    right:0;
-    background:white;
-    border-top:1px solid #ddd;
-    padding:9px;
-    display:flex;
-    gap:7px;
-    z-index:10;
-}
-
-.bottom button{
-    flex:1;
-}
-
 .progress{
     height:8px;
     background:#eee;
@@ -418,11 +401,6 @@ label{
     margin-top:5px;
     margin-bottom:16px;
 }
-
-
-/* =====================================================
-   AYLIK GELİR / GİDER GRAFİĞİ
-===================================================== */
 
 .monthly-chart{
     display:flex;
@@ -677,6 +655,158 @@ label{
 
 
 /* =====================================================
+   DASHBOARD 3 - FİNANSAL SAĞLIK
+===================================================== */
+
+.dashboard-health-card{
+    background:#fff;
+    border:1px solid #e4e8e5;
+    border-radius:20px;
+    padding:18px;
+    margin-bottom:14px;
+    box-shadow:0 6px 20px #00000009;
+}
+
+.dashboard-health-card h2{
+    margin:0;
+    font-size:18px;
+}
+
+.health-subtitle{
+    font-size:12px;
+    color:#777;
+    margin-top:5px;
+    margin-bottom:18px;
+}
+
+.health-score-area{
+    display:flex;
+    align-items:center;
+    gap:18px;
+    padding:15px;
+    background:#f7f8f8;
+    border-radius:17px;
+}
+
+.health-score-circle{
+    width:115px;
+    height:115px;
+    border-radius:50%;
+    background:conic-gradient(
+        #f07818 0deg,
+        #f07818 0deg,
+        #eee 0deg,
+        #eee 360deg
+    );
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+}
+
+.health-score-circle::after{
+    content:"";
+    position:absolute;
+    width:87px;
+    height:87px;
+    border-radius:50%;
+    background:#f7f8f8;
+}
+
+.health-score-number{
+    position:relative;
+    z-index:2;
+    font-size:30px;
+    font-weight:900;
+}
+
+.health-score-label{
+    position:relative;
+    z-index:2;
+    font-size:10px;
+    color:#777;
+}
+
+.health-summary{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+}
+
+.health-summary strong{
+    font-size:18px;
+}
+
+.health-summary span{
+    font-size:12px;
+    color:#777;
+    line-height:1.45;
+}
+
+.health-items{
+    margin-top:18px;
+}
+
+.health-item{
+    padding:12px 0;
+    border-bottom:1px solid #eee;
+}
+
+.health-item:last-child{
+    border-bottom:0;
+}
+
+.health-item-top{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    font-size:13px;
+    margin-bottom:7px;
+}
+
+.health-item-top strong{
+    font-size:12px;
+}
+
+.health-progress{
+    height:8px;
+    background:#eee;
+    border-radius:20px;
+    overflow:hidden;
+}
+
+.health-progress-bar{
+    height:100%;
+    width:0;
+    background:#f07818;
+    border-radius:20px;
+    transition:width .3s ease;
+}
+
+.health-item small{
+    display:block;
+    margin-top:6px;
+    font-size:11px;
+    color:#777;
+    line-height:1.35;
+}
+
+.health-good{
+    color:#16824f !important;
+}
+
+.health-warning{
+    color:#d49b32 !important;
+}
+
+.health-danger{
+    color:#c74624 !important;
+}
+
+
+/* =====================================================
    MOBİL
 ===================================================== */
 
@@ -756,6 +886,29 @@ label{
         height:190px;
     }
 
+    .health-score-area{
+        padding:13px;
+        gap:14px;
+    }
+
+    .health-score-circle{
+        width:105px;
+        height:105px;
+    }
+
+    .health-score-circle::after{
+        width:79px;
+        height:79px;
+    }
+
+    .health-score-number{
+        font-size:27px;
+    }
+
+    .health-summary strong{
+        font-size:16px;
+    }
+
 }
 
 
@@ -770,7 +923,8 @@ label{
     }
 
     .dashboard-card,
-    .dashboard-chart-card{
+    .dashboard-chart-card,
+    .dashboard-health-card{
         padding:14px;
     }
 
@@ -784,6 +938,20 @@ label{
         height:74px;
         left:35.5px;
         top:35.5px;
+    }
+
+    .health-score-circle{
+        width:95px;
+        height:95px;
+    }
+
+    .health-score-circle::after{
+        width:71px;
+        height:71px;
+    }
+
+    .health-score-number{
+        font-size:25px;
     }
 
 }
@@ -967,7 +1135,7 @@ Henüz bütçe oluşturulmadı.
 
 
 <!-- =====================================================
-     DASHBOARD 2
+     DASHBOARD 2 - AYLIK GELİR GİDER
 ===================================================== -->
 
 <section class="dashboard-chart-card">
@@ -1093,6 +1261,201 @@ Son 6 ay içerisindeki tahmini net varlık değişimi
 ℹ️ Bu grafik işlem geçmişinden geriye doğru hesaplanan
 tahmini net varlık değeridir. Hesap bakiyesini manuel olarak
 değiştirdiğinde geçmiş değerler yaklaşık olabilir.
+
+</div>
+
+</section>
+
+
+<!-- =====================================================
+     DASHBOARD 3 - FİNANSAL SAĞLIK
+===================================================== -->
+
+<section class="dashboard-health-card">
+
+<h2>🧠 Finansal Sağlık Skoru</h2>
+
+<div class="health-subtitle">
+Finansal durumunun 0–100 arasında genel değerlendirmesi
+</div>
+
+<div class="health-score-area">
+
+<div class="health-score-circle">
+
+<div
+    class="health-score-number"
+    id="healthScore"
+>
+0
+</div>
+
+<div class="health-score-label">
+/ 100
+</div>
+
+</div>
+
+<div class="health-summary">
+
+<strong id="healthStatus">
+Hesaplanıyor...
+</strong>
+
+<span id="healthMessage">
+Finansal verilerin analiz ediliyor.
+</span>
+
+</div>
+
+</div>
+
+
+<div class="health-items">
+
+<div class="health-item">
+
+<div class="health-item-top">
+
+<span>💰 Tasarruf Oranı</span>
+
+<strong id="healthSavingScore">
+0/20
+</strong>
+
+</div>
+
+<div class="health-progress">
+
+<div
+    id="healthSavingBar"
+    class="health-progress-bar"
+    style="width:0%"
+></div>
+
+</div>
+
+<small id="healthSavingText">
+Henüz yeterli veri yok.
+</small>
+
+</div>
+
+
+<div class="health-item">
+
+<div class="health-item-top">
+
+<span>💳 Borç Yükü</span>
+
+<strong id="healthDebtScore">
+0/20
+</strong>
+
+</div>
+
+<div class="health-progress">
+
+<div
+    id="healthDebtBar"
+    class="health-progress-bar"
+    style="width:0%"
+></div>
+
+</div>
+
+<small id="healthDebtText">
+Borç durumu analiz ediliyor.
+</small>
+
+</div>
+
+
+<div class="health-item">
+
+<div class="health-item-top">
+
+<span>🎯 Bütçe Kontrolü</span>
+
+<strong id="healthBudgetScore">
+0/20
+</strong>
+
+</div>
+
+<div class="health-progress">
+
+<div
+    id="healthBudgetBar"
+    class="health-progress-bar"
+    style="width:0%"
+></div>
+
+</div>
+
+<small id="healthBudgetText">
+Bütçe durumu analiz ediliyor.
+</small>
+
+</div>
+
+
+<div class="health-item">
+
+<div class="health-item-top">
+
+<span>🛟 Acil Durum Gücü</span>
+
+<strong id="healthEmergencyScore">
+0/20
+</strong>
+
+</div>
+
+<div class="health-progress">
+
+<div
+    id="healthEmergencyBar"
+    class="health-progress-bar"
+    style="width:0%"
+></div>
+
+</div>
+
+<small id="healthEmergencyText">
+Acil durum gücü analiz ediliyor.
+</small>
+
+</div>
+
+
+<div class="health-item">
+
+<div class="health-item-top">
+
+<span>📈 Net Varlık</span>
+
+<strong id="healthNetWorthScore">
+0/20
+</strong>
+
+</div>
+
+<div class="health-progress">
+
+<div
+    id="healthNetWorthBar"
+    class="health-progress-bar"
+    style="width:0%"
+></div>
+
+</div>
+
+<small id="healthNetWorthText">
+Net varlık durumu analiz ediliyor.
+</small>
+
+</div>
 
 </div>
 
@@ -1940,8 +2303,6 @@ function renderDashboard(){
     }
 
 
-    /* KATEGORİLER */
-
     if(categoryElement){
 
         const sortedCategories =
@@ -2025,8 +2386,6 @@ ${money(amount)}
 
     }
 
-
-    /* BÜTÇE */
 
     if(budgetElement){
 
@@ -2181,7 +2540,7 @@ kullanıldı
 
 
 /* =====================================================
-   DASHBOARD 2 - TARİH FORMAT
+   DASHBOARD 2 - TARİH
 ===================================================== */
 
 function monthKeyFromDate(date){
@@ -2252,7 +2611,7 @@ function getLastSixMonths(){
 
 
 /* =====================================================
-   DASHBOARD 2 - AYLIK GELİR GİDER
+   AYLIK GELİR / GİDER
 ===================================================== */
 
 function renderMonthlyChart(){
@@ -2438,7 +2797,7 @@ ${escapeHTML(item.label)}
 
 
 /* =====================================================
-   DASHBOARD 2 - HARCAMA DAĞILIMI
+   HARCAMA DAĞILIMI
 ===================================================== */
 
 function renderSpendingDistribution(){
@@ -2471,7 +2830,6 @@ function renderSpendingDistribution(){
 
     const now =
         new Date();
-
 
     const month =
         now.getMonth();
@@ -2695,7 +3053,7 @@ ${money(item.amount)}
 
 
 /* =====================================================
-   DASHBOARD 2 - NET VARLIK
+   NET VARLIK
 ===================================================== */
 
 function getCurrentNetWorth(){
@@ -2707,22 +3065,6 @@ function getCurrentNetWorth(){
 
 }
 
-
-/*
-   Net varlık geçmişini yaklaşık olarak
-   mevcut net varlıktan geriye doğru hesaplıyoruz.
-
-   Gelir:
-   Varlık hesabına → net varlık artar
-   Borç hesabına → net varlık azalır
-
-   Gider:
-   Varlık hesabına → net varlık azalır
-   Borç hesabına → net varlık artar
-
-   Transfer:
-   Net varlığı değiştirmez.
-*/
 
 function calculateHistoricalNetWorth(){
 
@@ -2738,10 +3080,8 @@ function calculateHistoricalNetWorth(){
         data.transactions
             .filter(
                 transaction =>
-                    transaction.type ===
-                        "income" ||
-                    transaction.type ===
-                        "expense"
+                    transaction.type === "income" ||
+                    transaction.type === "expense"
             )
             .map(
                 transaction => ({
@@ -2778,11 +3118,6 @@ function calculateHistoricalNetWorth(){
                 currentNetWorth;
 
 
-            /*
-               Bu ayın sonundan daha yeni
-               olan işlemleri geri alıyoruz.
-            */
-
             sortedTransactions.forEach(
                 transaction => {
 
@@ -2814,12 +3149,6 @@ function calculateHistoricalNetWorth(){
                         );
 
 
-                    /*
-                       Hesap silinmişse işlemin
-                       net varlık etkisini kesin
-                       olarak bilemeyiz.
-                    */
-
                     if(!account){
 
                         return;
@@ -2845,12 +3174,6 @@ function calculateHistoricalNetWorth(){
                         "income"
                     ){
 
-                        /*
-                           İşlemi geri almak:
-                           income varlıkta + ise
-                           geri dönemde -
-                        */
-
                         if(liability){
 
                             historical +=
@@ -2870,12 +3193,6 @@ function calculateHistoricalNetWorth(){
                         transaction.type ===
                         "expense"
                     ){
-
-                        /*
-                           İşlemi geri almak:
-                           expense varlıkta - ise
-                           geri dönemde +
-                        */
 
                         if(liability){
 
@@ -2914,7 +3231,7 @@ function calculateHistoricalNetWorth(){
 
 
 /* =====================================================
-   DASHBOARD 2 - NET VARLIK GRAFİĞİ
+   NET VARLIK GRAFİĞİ
 ===================================================== */
 
 function renderNetWorthChart(){
@@ -2990,11 +3307,6 @@ function renderNetWorthChart(){
     const range =
         max - min;
 
-
-    /*
-       Grafiğin üst ve alt tarafında
-       biraz boşluk bırakıyoruz.
-    */
 
     const padding =
         range * 0.15;
@@ -3091,7 +3403,6 @@ function renderNetWorthChart(){
     preserveAspectRatio="none"
 >
 
-
 <line
     x1="0"
     y1="100"
@@ -3158,6 +3469,840 @@ ${money(item.value)}
 `
             )
             .join("");
+
+}
+
+
+/* =====================================================
+   DASHBOARD 3 - FİNANSAL SAĞLIK
+===================================================== */
+
+function getMonthlyFinancialData(monthCount){
+
+    const months = [];
+
+    const now =
+        new Date();
+
+    now.setDate(1);
+
+    now.setHours(0,0,0,0);
+
+
+    for(
+        let i = monthCount - 1;
+        i >= 0;
+        i--
+    ){
+
+        const date =
+            new Date(
+                now.getFullYear(),
+                now.getMonth() - i,
+                1
+            );
+
+
+        months.push(
+            monthKeyFromDate(date)
+        );
+
+    }
+
+
+    let income = 0;
+
+    let expense = 0;
+
+
+    data.transactions.forEach(
+        transaction => {
+
+            if(
+                transaction.type !== "income" &&
+                transaction.type !== "expense"
+            ){
+
+                return;
+
+            }
+
+
+            const date =
+                new Date(
+                    transaction.date
+                );
+
+
+            if(
+                isNaN(date.getTime())
+            ){
+
+                return;
+
+            }
+
+
+            const key =
+                monthKeyFromDate(date);
+
+
+            if(
+                !months.includes(key)
+            ){
+
+                return;
+
+            }
+
+
+            const amount =
+                Number(
+                    transaction.amount || 0
+                );
+
+
+            if(
+                transaction.type === "income"
+            ){
+
+                income += amount;
+
+            }
+
+
+            if(
+                transaction.type === "expense"
+            ){
+
+                expense += amount;
+
+            }
+
+        }
+    );
+
+
+    return {
+
+        income:income,
+
+        expense:expense
+
+    };
+
+}
+
+
+/* =====================================================
+   SAĞLIK RENK
+===================================================== */
+
+function healthClass(score){
+
+    if(score >= 80){
+
+        return "health-good";
+
+    }
+
+
+    if(score >= 50){
+
+        return "health-warning";
+
+    }
+
+
+    return "health-danger";
+
+}
+
+
+/* =====================================================
+   FİNANSAL SAĞLIK HESAPLA
+===================================================== */
+
+function calculateFinancialHealth(){
+
+    const assets =
+        calculateAssets();
+
+
+    const liabilities =
+        calculateLiabilities();
+
+
+    const netWorth =
+        assets -
+        liabilities;
+
+
+    /*
+       1. TASARRUF ORANI
+       Maksimum 20 puan
+    */
+
+    const currentData =
+        getMonthlyFinancialData(1);
+
+
+    let savingRate = 0;
+
+
+    if(currentData.income > 0){
+
+        savingRate =
+            (
+                (
+                    currentData.income -
+                    currentData.expense
+                ) /
+                currentData.income
+            ) *
+            100;
+
+    }
+
+
+    let savingScore = 0;
+
+
+    if(savingRate >= 20){
+
+        savingScore = 20;
+
+    }else if(savingRate >= 15){
+
+        savingScore = 17;
+
+    }else if(savingRate >= 10){
+
+        savingScore = 14;
+
+    }else if(savingRate >= 5){
+
+        savingScore = 9;
+
+    }else if(savingRate >= 0){
+
+        savingScore = 4;
+
+    }else{
+
+        savingScore = 0;
+
+    }
+
+
+    /*
+       2. BORÇ YÜKÜ
+       Maksimum 20 puan
+    */
+
+    let debtRatio = 0;
+
+
+    if(assets > 0){
+
+        debtRatio =
+            (
+                liabilities /
+                assets
+            ) *
+            100;
+
+    }else if(liabilities > 0){
+
+        debtRatio = 100;
+
+    }
+
+
+    let debtScore = 20;
+
+
+    if(liabilities === 0){
+
+        debtScore = 20;
+
+    }else if(debtRatio <= 10){
+
+        debtScore = 18;
+
+    }else if(debtRatio <= 25){
+
+        debtScore = 15;
+
+    }else if(debtRatio <= 40){
+
+        debtScore = 11;
+
+    }else if(debtRatio <= 60){
+
+        debtScore = 6;
+
+    }else{
+
+        debtScore = 2;
+
+    }
+
+
+    /*
+       3. BÜTÇE KONTROLÜ
+       Maksimum 20 puan
+    */
+
+    const month =
+        currentMonth();
+
+
+    const budgets =
+        data.budgets.filter(
+            budget =>
+                budget.month === month
+        );
+
+
+    let budgetScore = 10;
+
+
+    if(budgets.length){
+
+        let totalPlanned = 0;
+
+        let totalSpent = 0;
+
+
+        budgets.forEach(
+            budget => {
+
+                totalPlanned +=
+                    Number(
+                        budget.amount || 0
+                    );
+
+
+                totalSpent +=
+                    getBudgetSpent(
+                        budget.category,
+                        month
+                    );
+
+            }
+        );
+
+
+        if(totalPlanned > 0){
+
+            const budgetPercent =
+                (
+                    totalSpent /
+                    totalPlanned
+                ) *
+                100;
+
+
+            if(budgetPercent <= 70){
+
+                budgetScore = 20;
+
+            }else if(budgetPercent <= 85){
+
+                budgetScore = 17;
+
+            }else if(budgetPercent <= 100){
+
+                budgetScore = 14;
+
+            }else if(budgetPercent <= 110){
+
+                budgetScore = 8;
+
+            }else{
+
+                budgetScore = 3;
+
+            }
+
+        }
+
+    }
+
+
+    /*
+       4. ACİL DURUM GÜCÜ
+       Maksimum 20 puan
+    */
+
+    const liquidAssets =
+        data.accounts
+            .filter(
+                account =>
+                    !accountIsLiability(account) &&
+                    (
+                        account.type === "asset" ||
+                        account.type === "cash" ||
+                        account.type === "other"
+                    )
+            )
+            .reduce(
+                (sum,account) =>
+                    sum +
+                    Math.max(
+                        0,
+                        Number(
+                            account.balance || 0
+                        )
+                    ),
+                0
+            );
+
+
+    const lastThreeMonths =
+        getMonthlyFinancialData(3);
+
+
+    let averageMonthlyExpense =
+        lastThreeMonths.expense / 3;
+
+
+    if(
+        averageMonthlyExpense <= 0 &&
+        currentData.expense > 0
+    ){
+
+        averageMonthlyExpense =
+            currentData.expense;
+
+    }
+
+
+    let emergencyMonths = 0;
+
+
+    if(
+        averageMonthlyExpense > 0
+    ){
+
+        emergencyMonths =
+            liquidAssets /
+            averageMonthlyExpense;
+
+    }
+
+
+    let emergencyScore = 0;
+
+
+    if(emergencyMonths >= 6){
+
+        emergencyScore = 20;
+
+    }else if(emergencyMonths >= 4){
+
+        emergencyScore = 17;
+
+    }else if(emergencyMonths >= 3){
+
+        emergencyScore = 14;
+
+    }else if(emergencyMonths >= 1){
+
+        emergencyScore = 8;
+
+    }else{
+
+        emergencyScore = 2;
+
+    }
+
+
+    /*
+       5. NET VARLIK
+       Maksimum 20 puan
+    */
+
+    let netWorthScore = 0;
+
+
+    if(
+        assets > 0 &&
+        netWorth >= 0
+    ){
+
+        const netWorthRatio =
+            (
+                netWorth /
+                assets
+            ) *
+            100;
+
+
+        if(netWorthRatio >= 80){
+
+            netWorthScore = 20;
+
+        }else if(netWorthRatio >= 60){
+
+            netWorthScore = 17;
+
+        }else if(netWorthRatio >= 40){
+
+            netWorthScore = 14;
+
+        }else if(netWorthRatio >= 20){
+
+            netWorthScore = 9;
+
+        }else{
+
+            netWorthScore = 5;
+
+        }
+
+    }else if(
+        assets === 0 &&
+        liabilities === 0
+    ){
+
+        netWorthScore = 10;
+
+    }else{
+
+        netWorthScore = 0;
+
+    }
+
+
+    const totalScore =
+        Math.round(
+            savingScore +
+            debtScore +
+            budgetScore +
+            emergencyScore +
+            netWorthScore
+        );
+
+
+    return {
+
+        score:
+            Math.min(
+                100,
+                Math.max(
+                    0,
+                    totalScore
+                )
+            ),
+
+        savingScore:
+            savingScore,
+
+        debtScore:
+            debtScore,
+
+        budgetScore:
+            budgetScore,
+
+        emergencyScore:
+            emergencyScore,
+
+        netWorthScore:
+            netWorthScore,
+
+        savingRate:
+            savingRate,
+
+        debtRatio:
+            debtRatio,
+
+        emergencyMonths:
+            emergencyMonths,
+
+        netWorth:
+            netWorth
+
+    };
+
+}
+
+
+/* =====================================================
+   SAĞLIK KALEMİ GÜNCELLE
+===================================================== */
+
+function updateHealthItem(
+    scoreId,
+    barId,
+    textId,
+    score,
+    maxScore,
+    text
+){
+
+    const scoreElement =
+        document.getElementById(
+            scoreId
+        );
+
+
+    const barElement =
+        document.getElementById(
+            barId
+        );
+
+
+    const textElement =
+        document.getElementById(
+            textId
+        );
+
+
+    if(scoreElement){
+
+        scoreElement.innerText =
+            `${score}/${maxScore}`;
+
+        scoreElement.className =
+            healthClass(
+                (
+                    score /
+                    maxScore
+                ) *
+                100
+            );
+
+    }
+
+
+    if(barElement){
+
+        const percent =
+            (
+                score /
+                maxScore
+            ) *
+            100;
+
+
+        barElement.style.width =
+            `${percent}%`;
+
+        barElement.className =
+            "health-progress-bar " +
+            healthClass(percent);
+
+    }
+
+
+    if(textElement){
+
+        textElement.innerText =
+            text;
+
+    }
+
+}
+
+
+/* =====================================================
+   DASHBOARD 3 GÖSTER
+===================================================== */
+
+function renderFinancialHealth(){
+
+    const scoreElement =
+        document.getElementById(
+            "healthScore"
+        );
+
+
+    if(!scoreElement){
+
+        return;
+
+    }
+
+
+    const result =
+        calculateFinancialHealth();
+
+
+    const score =
+        result.score;
+
+
+    let status =
+        "Kritik";
+
+
+    let message =
+        "Finansal durumunda öncelikle temel bütçe ve borç kontrolünü güçlendirmelisin.";
+
+
+    if(score >= 80){
+
+        status =
+            "Çok İyi";
+
+
+        message =
+            "Finansal yapın güçlü görünüyor. Tasarruf ve varlık birikimini korumaya odaklan.";
+
+    }else if(score >= 60){
+
+        status =
+            "İyi";
+
+
+        message =
+            "Finansal durumun genel olarak iyi. Birkaç alandaki iyileştirme skorunu daha da yükseltebilir.";
+
+    }else if(score >= 40){
+
+        status =
+            "Geliştirilmeli";
+
+
+        message =
+            "Finansal temel var ancak bütçe, tasarruf veya borç yönetiminde iyileştirme gerekiyor.";
+
+    }else if(score >= 20){
+
+        status =
+            "Riskli";
+
+
+        message =
+            "Finansal dayanıklılığını artırmak için giderleri ve borçları daha yakından kontrol etmelisin.";
+
+    }
+
+
+    scoreElement.innerText =
+        score;
+
+
+    const statusElement =
+        document.getElementById(
+            "healthStatus"
+        );
+
+
+    const messageElement =
+        document.getElementById(
+            "healthMessage"
+        );
+
+
+    if(statusElement){
+
+        statusElement.innerText =
+            status;
+
+        statusElement.className =
+            healthClass(score);
+
+    }
+
+
+    if(messageElement){
+
+        messageElement.innerText =
+            message;
+
+    }
+
+
+    const circle =
+        document.querySelector(
+            ".health-score-circle"
+        );
+
+
+    if(circle){
+
+        const degree =
+            (
+                score /
+                100
+            ) *
+            360;
+
+
+        circle.style.background =
+            `conic-gradient(
+                #f07818 0deg,
+                #f07818 ${degree}deg,
+                #eee ${degree}deg,
+                #eee 360deg
+            )`;
+
+    }
+
+
+    updateHealthItem(
+        "healthSavingScore",
+        "healthSavingBar",
+        "healthSavingText",
+        result.savingScore,
+        20,
+        result.savingRate >= 0
+        ? `%${Math.round(result.savingRate)} tasarruf oranı`
+        : `%${Math.round(Math.abs(result.savingRate))} oranında açık oluştu`
+    );
+
+
+    updateHealthItem(
+        "healthDebtScore",
+        "healthDebtBar",
+        "healthDebtText",
+        result.debtScore,
+        20,
+        result.debtRatio === 0
+        ? "Borç bulunmuyor."
+        : `Borç / varlık oranı yaklaşık %${Math.round(result.debtRatio)}`
+    );
+
+
+    updateHealthItem(
+        "healthBudgetScore",
+        "healthBudgetBar",
+        "healthBudgetText",
+        result.budgetScore,
+        20,
+        data.budgets.filter(
+            budget =>
+                budget.month ===
+                currentMonth()
+        ).length
+        ? "Bu ayki bütçe kullanımın değerlendirildi."
+        : "Bu ay bütçe oluşturulursa daha doğru değerlendirme yapılabilir."
+    );
+
+
+    updateHealthItem(
+        "healthEmergencyScore",
+        "healthEmergencyBar",
+        "healthEmergencyText",
+        result.emergencyScore,
+        20,
+        result.emergencyMonths > 0
+        ? `Yaklaşık ${result.emergencyMonths.toFixed(1)} aylık gider karşılığı`
+        : "Henüz acil durum rezervi hesaplanamadı."
+    );
+
+
+    updateHealthItem(
+        "healthNetWorthScore",
+        "healthNetWorthBar",
+        "healthNetWorthText",
+        result.netWorthScore,
+        20,
+        `Net varlık: ${money(result.netWorth)}`
+    );
 
 }
 
@@ -3386,13 +4531,11 @@ function render(){
     }
 
 
-    /*
-       DASHBOARDLAR
-    */
-
     renderDashboard();
 
     renderDashboardCharts();
+
+    renderFinancialHealth();
 
     renderAccounts();
 
@@ -3790,12 +4933,18 @@ ${money(amount)}
 
 <div class="transaction-actions">
 
+${
+    !isTransfer
+    ? `
 <button
     class="small"
     onclick="editTransaction(${index})"
 >
 ✏️
 </button>
+`
+    : ""
+}
 
 <button
     class="small danger"
@@ -3820,7 +4969,7 @@ ${money(amount)}
 
 
 /* =====================================================
-   SELECTLERİ GÜNCELLE
+   SELECTLER
 ===================================================== */
 
 function updateSelects(){
