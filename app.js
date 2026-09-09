@@ -233,7 +233,97 @@ function renderExecutiveDashboard(){
  let act=document.getElementById('execNextAction'),actions=[];let rate=t.mi?t.me/t.mi*100:0;if(!efTarget)actions.push('🛟 Acil durum fonunu ayarla.');else if(efPct<50)actions.push('🛟 Acil durum fonunu güçlendir.');if(t.mi&&rate>80)actions.push('⚠️ Bu ay giderlerin gelirin %80’inden fazla; bütçeni kontrol et.');if(debt>0)actions.push('💳 Borç stratejisini gözden geçir ve minimum ödemeleri kontrol et.');if(!actions.length)actions.push('🟢 Kritik bir işlem görünmüyor. Bir finansal hedefe düzenli katkı yap.');if(act)act.innerHTML=actions.slice(0,3).map(x=>`<div class="execAlert">${x}</div>`).join('');
 }
 
-function render(){let t=totals();document.getElementById('today').textContent=new Date().toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long'});document.getElementById('netWorth').textContent=money(t.net);document.getElementById('assets').textContent=money(t.assets);document.getElementById('liabilities').textContent=money(t.liab);document.getElementById('monthNet').textContent=money(t.mi-t.me);document.getElementById('mIncome').textContent=money(t.mi);document.getElementById('mExpense').textContent=money(t.me);let sr=t.mi>0?Math.round((t.mi-t.me)/t.mi*100):0;document.getElementById('saveRate').textContent=sr+'%';let efTarget=emergencyTarget(),efCur=emergencyCurrent(),efPct=efTarget?Math.min(100,efCur/efTarget*100):0,dm=debtMetrics(0,'avalanche'),debtBurden=t.assets>0?Math.min(30,t.liab/t.assets*30):Math.min(25,dm.total>0?25:0);let score=Math.max(0,Math.min(100,Math.round(50+sr*.8-(debtBurden)+(efTarget?efPct*.15:0))));document.getElementById('score').textContent=score;document.getElementById('scoreCircle').style.setProperty('--p',score+'%');document.getElementById('scoreText').textContent=score>=80?'Çok iyi':score>=60?'İyi':score>=40?'Dengeli':'Dikkat';let recent=[...data.transactions].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);document.getElementById('recent').innerHTML=recent.length?recent.map(x=>`<div class="row"><div><b>${x.description||x.category||'İşlem'}</b><div class="muted">${fmt(x.date)}</div></div><b class="${x.type==='income'?'positive':'negative'}">${x.type==='income'?'+':'−'}${money(x.amount)}</b></div>`).join(''):'<div class="empty">Henüz işlem yok.</div>';let all=[...data.transactions].sort((a,b)=>b.date.localeCompare(a.date));document.getElementById('allTx').innerHTML=all.length?all.map(x=>`<div class="row"><div><b>${x.description||x.category||'İşlem'}</b><div class="muted">${fmt(x.date)} · ${x.categorySubcategory||x.category||''}</div></div><b class="${x.type==='income'?'positive':'negative'}">${x.type==='income'?'+':'−'}${money(x.amount)}</b></div>`).join(''):'<div class="empty">Henüz işlem yok.</div>';renderExecutiveDashboard();renderFinancialCenter();renderCoach();renderAI();renderEmergency();renderAssets();renderDebts();renderSecurity();renderAllocationSummary();renderReports();renderCashflow();renderForecast();renderBudgets();renderEnvelopes();renderCategories();renderObligations();renderPaymentPlan();renderPlans();renderChart();renderAccounts()}
+
+function calculateFinancialHealth(){
+  const t=totals();
+  const m=month();
+  const income=Math.max(0,Number(t.mi||0));
+  const expense=Math.max(0,Number(t.me||0));
+  const savingsRate=income>0?((income-expense)/income)*100:0;
+
+  // 1) Tasarruf oranı: 25 puan
+  let savingsScore=0;
+  if(income>0){
+    if(savingsRate>=20)savingsScore=25;
+    else if(savingsRate>=10)savingsScore=18+(savingsRate-10)*0.7;
+    else if(savingsRate>=0)savingsScore=8+savingsRate;
+    else savingsScore=Math.max(0,8+savingsRate*0.4);
+  }
+
+  // 2) Borç yükü: 20 puan. Kayıtlı borç + kredi yükünü gelirle kıyaslar.
+  const dm=debtMetrics(0,'avalanche');
+  const debtTotal=Math.max(Number(t.liab||0),Number(dm.total||0));
+  const debtToIncome=income>0?debtTotal/income:(debtTotal>0?99:0);
+  let debtScore=20;
+  if(debtTotal>0){
+    if(debtToIncome<=1)debtScore=18;
+    else if(debtToIncome<=3)debtScore=14;
+    else if(debtToIncome<=6)debtScore=8;
+    else debtScore=3;
+  }
+
+  // 3) Acil durum fonu: 20 puan
+  const efTarget=emergencyTarget(), efCur=emergencyCurrent();
+  const efRatio=efTarget>0?Math.max(0,Math.min(1,efCur/efTarget)):0;
+  const emergencyScore=efTarget>0?20*efRatio:0;
+
+  // 4) Bütçe performansı: 15 puan
+  const budgets=(data.budgets||[]).filter(b=>b.month===m);
+  const budgetLimit=budgets.reduce((sum,b)=>sum+Number(b.amount||0),0);
+  const budgetSpentTotal=budgets.reduce((sum,b)=>sum+budgetSpent(b),0);
+  let budgetScore=0;
+  if(budgetLimit>0){
+    const usage=budgetSpentTotal/budgetLimit;
+    if(usage<=1)budgetScore=15;
+    else if(usage<=1.10)budgetScore=11;
+    else if(usage<=1.25)budgetScore=6;
+    else budgetScore=2;
+  }
+
+  // 5) Net varlık: 10 puan
+  let netWorthScore=0;
+  if(t.net>0)netWorthScore=10;
+  else if(t.net===0)netWorthScore=5;
+
+  // 6) Düzenli gelir/gider dengesi: 10 puan
+  const hist=historicalAverages();
+  const avgIncome=Math.max(0,Number(hist.inc||0));
+  const avgExpense=Math.max(0,Number(hist.exp||0));
+  const balanceBase=avgIncome>0?avgIncome:income;
+  const balanceExpense=avgIncome>0?avgExpense:expense;
+  let balanceScore=0;
+  if(balanceBase>0){
+    const ratio=balanceExpense/balanceBase;
+    if(ratio<=0.70)balanceScore=10;
+    else if(ratio<=0.85)balanceScore=8;
+    else if(ratio<=1)balanceScore=5;
+    else balanceScore=1;
+  }
+
+  const score=Math.max(0,Math.min(100,Math.round(savingsScore+debtScore+emergencyScore+budgetScore+netWorthScore+balanceScore)));
+  const label=score>=85?'Mükemmel':score>=70?'Çok İyi':score>=55?'İyi':score>=40?'Dengeli':'Dikkat';
+
+  const notes=[];
+  notes.push({ok:savingsRate>=10,text:`Tasarruf oranı ${Math.round(savingsRate)}%${income<=0?' · bu ay gelir kaydı yok':''}`});
+  notes.push({ok:debtTotal===0||debtToIncome<=3,text:debtTotal?`Borç yükü aylık gelirin ${income>0?debtToIncome.toFixed(1)+' katı':'üzerinde; gelir verisi yok'}`:'Kayıtlı borç yükü yok'});
+  notes.push({ok:efTarget>0&&efRatio>=0.5,text:efTarget?`Acil durum fonu hedefinin %${Math.round(efRatio*100)}'i hazır`:'Acil durum fonu hedefi ayarlanmamış'});
+  notes.push({ok:budgetLimit>0&&budgetSpentTotal<=budgetLimit,text:budgetLimit?`Bütçe kullanımı %${Math.round((budgetSpentTotal/budgetLimit)*100)}`:'Bu ay bütçe tanımlanmamış'});
+  notes.push({ok:t.net>=0,text:`Net varlık ${money(t.net)}`});
+  notes.push({ok:balanceScore>=8,text:balanceBase>0?`Düzenli gider/gelir dengesi %${Math.round(balanceExpense/balanceBase*100)}`:'Düzenli gelir/gider verisi henüz yetersiz'});
+
+  return {score,label,savingsRate,debtTotal,debtToIncome,efTarget,efCur,efRatio,budgetLimit,budgetSpentTotal,netWorth:t.net,balanceScore,notes};
+}
+
+function renderFinancialHealth(){
+  const h=calculateFinancialHealth();
+  const scoreEl=document.getElementById('score'), circle=document.getElementById('scoreCircle'), text=document.getElementById('scoreText'), details=document.getElementById('healthDetails');
+  if(scoreEl)scoreEl.textContent=h.score;
+  if(circle)circle.style.setProperty('--p',h.score+'%');
+  if(text)text.textContent=h.label;
+  if(details)details.innerHTML=h.notes.map(n=>`<div class="healthNote ${n.ok?'healthOk':'healthWarn'}"><span>${n.ok?'●':'▲'}</span><span>${n.text}</span></div>`).join('');
+}
+
+function render(){let t=totals();document.getElementById('today').textContent=new Date().toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long'});document.getElementById('netWorth').textContent=money(t.net);document.getElementById('assets').textContent=money(t.assets);document.getElementById('liabilities').textContent=money(t.liab);document.getElementById('monthNet').textContent=money(t.mi-t.me);document.getElementById('mIncome').textContent=money(t.mi);document.getElementById('mExpense').textContent=money(t.me);let sr=t.mi>0?Math.round((t.mi-t.me)/t.mi*100):0;document.getElementById('saveRate').textContent=sr+'%';renderFinancialHealth();let recent=[...data.transactions].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);document.getElementById('recent').innerHTML=recent.length?recent.map(x=>`<div class="row"><div><b>${x.description||x.category||'İşlem'}</b><div class="muted">${fmt(x.date)}</div></div><b class="${x.type==='income'?'positive':'negative'}">${x.type==='income'?'+':'−'}${money(x.amount)}</b></div>`).join(''):'<div class="empty">Henüz işlem yok.</div>';let all=[...data.transactions].sort((a,b)=>b.date.localeCompare(a.date));document.getElementById('allTx').innerHTML=all.length?all.map(x=>`<div class="row"><div><b>${x.description||x.category||'İşlem'}</b><div class="muted">${fmt(x.date)} · ${x.categorySubcategory||x.category||''}</div></div><b class="${x.type==='income'?'positive':'negative'}">${x.type==='income'?'+':'−'}${money(x.amount)}</b></div>`).join(''):'<div class="empty">Henüz işlem yok.</div>';renderExecutiveDashboard();renderFinancialCenter();renderCoach();renderAI();renderEmergency();renderAssets();renderDebts();renderSecurity();renderAllocationSummary();renderReports();renderCashflow();renderForecast();renderBudgets();renderEnvelopes();renderCategories();renderObligations();renderPaymentPlan();renderPlans();renderChart();renderAccounts()}
 function backup(){let blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='finpal-2.0-final-yedek-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(a.href)}
 function restore(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(!x||!x.accounts||!x.transactions)throw 0;if(confirm('Mevcut veriler yedek ile değiştirilsin mi?')){data=migrate(x);save();alert('Yedek başarıyla yüklendi.')}}catch(err){alert('Geçersiz FinPal yedeği.')}};r.readAsText(f)}
 function resetData(){if(confirm('TÜM FinPal verileri silinecek. Emin misiniz?')){localStorage.removeItem(KEY);data=base();render()}}
