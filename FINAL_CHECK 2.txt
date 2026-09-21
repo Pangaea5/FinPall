@@ -1,9 +1,0 @@
-FinPal 5.0 Final - Statik Kontrol
-=================================
-JavaScript syntax: OK
-APP_VERSION: 19
-HTML title: OK
-PWA manifest name: OK
-HTML onclick fonksiyon sayısı: 91
-Çözümlenemeyen onclick isimleri: Yok
-Tekrarlanan HTML id: Yok
