@@ -55,9 +55,18 @@ function saveAccountDirect(){
     }
     if(!Array.isArray(data.accounts))data.accounts=[];
     data.accounts.push(a);
-    localStorage.setItem(KEY,JSON.stringify(data));
+    try{
+      localStorage.setItem(KEY,JSON.stringify(data));
+    }catch(storageErr){
+      data.accounts=data.accounts.filter(x=>x.id!==a.id);
+      throw storageErr;
+    }
     closeModal();
-    render();
+    try{render();}
+    catch(renderErr){
+      console.error('Hesap kaydedildi ancak ekran yenilenemedi',renderErr);
+      try{location.reload();}catch(_e){}
+    }
   }catch(err){console.error('Hesap kaydetme hatası',err);alert('Hesap kaydedilemedi: '+(err?.message||err));}
 }
 function openAccount(){openModal('Yeni Hesap','account',`<label>Hesap adı</label><input id="aName" placeholder="Örn. Bonus Kart"><label>Tür</label><select id="aType" onchange="toggleAccountFields()"><option value="bank">Banka</option><option value="cash">Nakit</option><option value="credit">Kredi Kartı</option><option value="investment">Yatırım</option><option value="debt">Borç</option></select><div class="muted" style="margin:8px 0 12px">Yeni hesap 0 TL ile başlar. Kart borcu girdiğin harcamalardan oluşur.</div><div id="creditFields" style="display:none"><label>Kart limiti (isteğe bağlı)</label><input id="aLimit" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Örn. 50000"><label>Ekstre kesim günü</label><input id="aStatementDay" type="number" inputmode="numeric" min="1" max="31" value="1"><label>Son ödeme günü</label><input id="aDueDay" type="number" inputmode="numeric" min="1" max="31" value="10"></div>`);toggleAccountFields();let b=document.querySelector('#modal .actions button:last-child');if(b)b.setAttribute('onclick','saveAccountDirect()')}
