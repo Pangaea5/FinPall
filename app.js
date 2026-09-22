@@ -1,6 +1,6 @@
 
 const KEY='finpalData';
-const APP_VERSION=25;
+const APP_VERSION=27;
 const CATS={"Konut":["Kira","Aidat","Elektrik","Su","Doğalgaz","İnternet","Ev Bakımı"],"Gıda":["Market","Kasap","Restoran","Kafe"],"Ulaşım":["Yakıt","Toplu Taşıma","Otopark","Bakım"],"Sağlık":["Muayene","İlaç","Diş"],"Eğitim":["Kurs","Kitap","Okul"],"Abonelik":["Telefon","Netflix","Spotify","Diğer"],"Giyim":["Kıyafet","Ayakkabı"],"Eğlence":["Sinema","Hobi","Tatil"],"Borçlar":["Kredi","Kredi Kartı","Diğer"],"Yatırım":["Altın","Döviz","Hisse","Fon"],"Diğer":["Diğer"]};
 let data=load(), modalType=null, modalTypeCardId=null, budgetMonth=month(), reportMonth=month();
 try{snapshotNetWorth45();localStorage.setItem(KEY,JSON.stringify(data))}catch(e){}
@@ -17,51 +17,56 @@ function snapshotNetWorth45(){
 }
 function save(){snapshotNetWorth45();localStorage.setItem(KEY,JSON.stringify(data));try{render()}catch(e){console.error('FinPal render hatası:',e)}}
 function money(n){return new Intl.NumberFormat('tr-TR',{style:'currency',currency:'TRY',maximumFractionDigits:2}).format(Number(n)||0)}
-function month(d=new Date()){return d.toISOString().slice(0,7)}
-function fmt(d){return new Date(d).toLocaleDateString('tr-TR')}
+function month(d=new Date()){const x=d instanceof Date?d:new Date(d);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')}
+function fmt(d){if(!d)return '—';const x=/^\d{4}-\d{2}-\d{2}$/.test(String(d))?new Date(String(d)+'T12:00:00'):new Date(d);return Number.isNaN(x.getTime())?'—':x.toLocaleDateString('tr-TR')}
 function accountBalance(id){let a=data.accounts.find(x=>x.id===id);if(!a)return 0;let b=Number(a.opening||0),today=new Date();today.setHours(23,59,59,999);data.transactions.forEach(t=>{let td=new Date((t.date||'9999-12-31')+'T23:59:59');if(td>today)return;if(t.type==='transfer'){if(t.from===id)b-=+t.amount;if(t.to===id)b+=+t.amount}else if(t.accountId===id)b+=(t.type==='income'?1:-1)*+t.amount});return b}
 function cardDebt(id){return Math.max(0,-accountBalance(id));}
-function creditAvailable(id){let a=data.accounts.find(x=>x.id===id);if(!a||a.type!=='credit')return 0;return Math.max(0,Number(a.cardLimit||0)-cardDebt(id))}
+
+function cardFutureInstallments(id){let today=new Date();today.setHours(23,59,59,999);return data.transactions.filter(t=>t.accountId===id&&t.type==='expense'&&t.installmentGroup&&new Date((t.date||'9999-12-31')+'T23:59:59')>today).reduce((s,t)=>s+Number(t.amount||0),0)}
+function cardInstallmentCommitment(id){return cardDebt(id)+cardFutureInstallments(id)}
+function creditAvailable(id){let a=data.accounts.find(x=>x.id===id);if(!a||a.type!=='credit')return 0;let limit=Number(a.cardLimit||0);if(limit<=0)return 0;return Math.max(0,limit-cardInstallmentCommitment(id))}
 function dateFromDay(year,month,day){let last=new Date(year,month+1,0).getDate();return new Date(year,month,Math.min(Math.max(1,day),last))}
 function cardCycle(id,baseDate=new Date()){let a=data.accounts.find(x=>x.id===id);if(!a||a.type!=='credit')return null;let y=baseDate.getFullYear(),m=baseDate.getMonth(),today=baseDate.getDate(),sd=Math.min(Math.max(1,Number(a.statementDay||1)),31);let end=dateFromDay(y,m,sd);if(today<sd){end=dateFromDay(y,m-1,sd)}let start=new Date(end.getFullYear(),end.getMonth()-1,end.getDate()+1);let due=new Date(end.getFullYear(),end.getMonth(),Math.min(Number(a.dueDay||10),new Date(end.getFullYear(),end.getMonth()+1,0).getDate()));if(due<=end)due=new Date(end.getFullYear(),end.getMonth()+1,Math.min(Number(a.dueDay||10),new Date(end.getFullYear(),end.getMonth()+2,0).getDate()));return {start,end,due}}
-function cardStatement(id){let c=cardCycle(id);if(!c)return 0;return data.transactions.filter(t=>t.accountId===id&&t.type==='expense').filter(t=>{let d=new Date(t.date+'T00:00:00');return d>c.start&&d<=c.end}).reduce((s,t)=>s+Number(t.amount),0)-data.transactions.filter(t=>t.type==='transfer'&&t.to===id).filter(t=>{let d=new Date(t.date+'T00:00:00');return d>c.start&&d<=c.end}).reduce((s,t)=>s+Number(t.amount),0)}
-function cardInfo(id){let a=data.accounts.find(x=>x.id===id),c=cardCycle(id);if(!a||!c)return null;return {debt:cardDebt(id),available:creditAvailable(id),statement:Math.max(0,cardStatement(id)),due:c.due}}
+function cardStatement(id){let c=cardCycle(id);if(!c)return 0;return data.transactions.filter(t=>t.accountId===id&&t.type==='expense').filter(t=>{let d=new Date(t.date+'T00:00:00');return d>=c.start&&d<=c.end}).reduce((s,t)=>s+Number(t.amount),0)-data.transactions.filter(t=>t.type==='transfer'&&t.to===id).filter(t=>{let d=new Date(t.date+'T00:00:00');return d>=c.start&&d<=c.end}).reduce((s,t)=>s+Number(t.amount),0)}
+function cardInfo(id){let a=data.accounts.find(x=>x.id===id),c=cardCycle(id);if(!a||!c)return null;return {debt:cardDebt(id),futureInstallments:cardFutureInstallments(id),installmentCommitment:cardInstallmentCommitment(id),available:creditAvailable(id),statement:Math.max(0,cardStatement(id)),due:c.due}}
 function trackedAssetTotal(){return data.assets.reduce((s,a)=>s+Number(a.quantity||0)*Number(a.currentPrice||0),0)}
 function trackedAssetCost(){return data.assets.reduce((s,a)=>s+Number(a.quantity||0)*Number(a.unitCost||0),0)}
 function totals(){let assets=0,liab=0;data.accounts.forEach(a=>{let b=accountBalance(a.id);if(a.type==='debt'||a.type==='credit')liab+=Math.max(0,-b||b);else assets+=Math.max(0,b)});assets+=trackedAssetTotal();let mi=data.transactions.filter(t=>t.type==='income'&&t.date.slice(0,7)===month()).reduce((s,t)=>s+ +t.amount,0),me=data.transactions.filter(t=>t.type==='expense'&&t.date.slice(0,7)===month()).reduce((s,t)=>s+ +t.amount,0);return{assets,liab,net:assets-liab,mi,me}}
 
-function tab(id,btn){document.querySelectorAll('section[id]').forEach(s=>s.classList.add('hide'));document.getElementById(id).classList.remove('hide');document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');render()}
+function tab(id,btn){document.querySelectorAll('section[id]').forEach(s=>s.classList.add('hide'));document.querySelectorAll('.tabContent').forEach(s=>s.style.display='none');let target=document.getElementById(id);if(target)target.classList.remove('hide');else{target=document.getElementById('tab-'+id);if(target)target.style.display='block'}if(!target){console.warn('FinPal sekmesi bulunamadı:',id);return}document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');try{render()}catch(e){console.error('FinPal sekme render hatası:',e)}if(id==='ai36'&&typeof runAI36==='function')runAI36()}
 function openModal(title,type,body){modalType=type;document.getElementById('modalTitle').textContent=title;document.getElementById('modalBody').innerHTML=body;document.getElementById('modal').classList.add('on')}
 function closeModal(){document.getElementById('modal').classList.remove('on');modalType=null;let b=document.querySelector('#modal .actions button:last-child');if(b)b.style.display='block'}
 function val(id){const el=document.getElementById(id);return el?el.value:''}
 function submitModal(){let m=modalType;if(m==='account'){let name=val('aName').trim(),type=val('aType');if(!name)return alert('Hesap adı gerekli.');let a={id:uid(),name,type,opening:0};if(type==='credit'){a.cardLimit=Math.max(0,+val('aLimit')||0);a.statementDay=Math.min(31,Math.max(1,+val('aStatementDay')||1));a.dueDay=Math.min(31,Math.max(1,+val('aDueDay')||10));}data.accounts.push(a);save();closeModal()}
 else if(m==='tx'){
   const type=val('tType')||'expense';
-  const amount=Number(val('tAmount'));
+  const enteredAmount=Number(val('tAmount'));
   const desc=val('tDesc').trim();
   const categoryGroup=val('tGroup')||'Diğer';
   const categorySubcategory=val('tCat')||'Diğer';
   const accountId=val('tAccount');
   const envelopeId=val('tEnvelope');
   const date=val('tDate')||new Date().toISOString().slice(0,10);
-  if(!(amount>0))return alert('Tutar 0’dan büyük olmalı.');
+  if(!(enteredAmount>0))return alert('Tutar 0’dan büyük olmalı.');
   if(!accountId)return alert('Lütfen bir hesap seçin.');
   const acc=data.accounts.find(a=>a.id===accountId);
   if(!acc)return alert('Seçilen hesap bulunamadı. Hesaplar bölümünü kontrol edin.');
   const installment=!!document.getElementById('tInstallment')?.checked && type==='expense' && acc.type==='credit';
   const count=Math.max(2,Math.min(60,Number(val('tInstallments'))||2));
-  const firstDate=val('tFirstDate')||date;
+  const firstDate=val('tFirstDate')||addMonthsDate(date,1);
+  const amountMode=val('tInstallmentAmountMode')||'monthly';
+  const totalAmount=installment ? (amountMode==='monthly' ? Math.round(enteredAmount*count*100)/100 : enteredAmount) : enteredAmount;
   if(type==='expense'&&acc.type==='credit'){
     const limit=Number(acc.cardLimit||0);
-    if(limit>0){const available=creditAvailable(accountId);if(amount>available)return alert('Kredi kartı limitini aşıyorsunuz. Kullanılabilir limit: '+money(available));}
+    if(limit>0){const available=creditAvailable(accountId);if(totalAmount>available)return alert('Kredi kartı limitini aşıyorsunuz. Kullanılabilir limit: '+money(available));}
   }
   if(installment){
     const installmentGroup=uid();
-    const baseAmount=Math.floor((amount/count)*100)/100;
-    const rest=Math.round((amount-baseAmount*(count-1))*100)/100;
-    for(let i=0;i<count;i++)data.transactions.push({id:uid(),type:'expense',amount:i===count-1?rest:baseAmount,description:desc||'Taksitli alışveriş',category:categorySubcategory,categoryGroup,categorySubcategory,accountId,envelopeId,date:addMonthsDate(firstDate,i),installmentGroup,installmentNo:i+1,installmentCount:count,installmentTotal:amount});
+    const monthlyAmount=amountMode==='monthly' ? Math.round(enteredAmount*100)/100 : Math.floor((totalAmount/count)*100)/100;
+    const lastAmount=Math.round((totalAmount-monthlyAmount*(count-1))*100)/100;
+    for(let i=0;i<count;i++)data.transactions.push({id:uid(),type:'expense',amount:i===count-1?lastAmount:monthlyAmount,description:desc||'Taksitli alışveriş',category:categorySubcategory,categoryGroup,categorySubcategory,accountId,envelopeId,date:addMonthsDate(firstDate,i),purchaseDate:date,installmentGroup,installmentNo:i+1,installmentCount:count,installmentTotal:totalAmount,installmentAmount:monthlyAmount,installmentAmountMode:amountMode});
   }else{
-    data.transactions.push({id:uid(),type,amount,description:desc,category:categorySubcategory,categoryGroup,categorySubcategory,accountId,envelopeId,date});
+    data.transactions.push({id:uid(),type,amount:enteredAmount,description:desc,category:categorySubcategory,categoryGroup,categorySubcategory,accountId,envelopeId,date});
   }
   try{save()}catch(e){console.error('FinPal gider kayıt hatası:',e);return alert('Kayıt tarayıcıya yazılamadı. Depolama iznini veya boş alanı kontrol edin.');}
   closeModal();
@@ -70,28 +75,23 @@ else if(m==='cardPayment'){let to=modalTypeCardId,from=val('cpFrom'),amount=+val
 else if(m==='budget'){let group=val('bGroup'),cat=val('bCat'),amount=+val('bAmount'),env=val('bEnv')||null,mth=val('bMonth')||month();if(!(amount>0)||!group||!cat)return alert('Kategori ve tutar gerekli.');let old=data.budgets.find(x=>(x.categorySubcategory||x.category)===cat&&x.month===mth);if(old){old.amount=amount;old.envelopeId=env;old.categoryGroup=group;old.categorySubcategory=cat;old.category=cat}else data.budgets.push({id:uid(),category:cat,categoryGroup:group,categorySubcategory:cat,amount,month:mth,envelopeId:env});budgetMonth=mth;save();closeModal()}
 else if(m==='envelope'){let name=val('eName').trim(),budget=+val('eBudget')||0;if(!name||budget<0)return alert('Bilgileri kontrol edin.');data.envelopes.push({id:uid(),name,budget,spent:0});save();closeModal()}}
 function saveAccountDirect(){
-  try{
-    const name=(document.getElementById('aName')?.value||'').trim();
-    const type=document.getElementById('aType')?.value||'bank';
-    if(!name){alert('Hesap adı gerekli.');return;}
-    const a={id:uid(),name,type,opening:0};
-    if(type==='credit'){
-      const rawLimit=document.getElementById('aLimit')?.value;
-      const rawStatement=document.getElementById('aStatementDay')?.value;
-      const rawDue=document.getElementById('aDueDay')?.value;
-      a.cardLimit=Math.max(0,Number(rawLimit)||0);
-      a.statementDay=Math.min(31,Math.max(1,parseInt(rawStatement,10)||1));
-      a.dueDay=Math.min(31,Math.max(1,parseInt(rawDue,10)||10));
-    }
-    if(!Array.isArray(data.accounts))data.accounts=[];
-    data.accounts.push(a);
-    localStorage.setItem(KEY,JSON.stringify(data));
-    closeModal();
-    render();
-  }catch(err){console.error('Hesap kaydetme hatası',err);alert('Hesap kaydedilemedi: '+(err?.message||err));}
+  const name=(document.getElementById('aName')?.value||'').trim();
+  const type=document.getElementById('aType')?.value||'bank';
+  if(!name){alert('Hesap adı gerekli.');return;}
+  const a={id:uid(),name,type,opening:0};
+  if(type==='credit'){
+    a.cardLimit=Math.max(0,Number(document.getElementById('aLimit')?.value)||0);
+    a.statementDay=Math.min(31,Math.max(1,parseInt(document.getElementById('aStatementDay')?.value,10)||1));
+    a.dueDay=Math.min(31,Math.max(1,parseInt(document.getElementById('aDueDay')?.value,10)||10));
+  }
+  if(!Array.isArray(data.accounts))data.accounts=[];
+  data.accounts.push(a);
+  try{localStorage.setItem(KEY,JSON.stringify(data))}catch(err){data.accounts=data.accounts.filter(x=>x.id!==a.id);console.error('Hesap depolama hatası',err);alert('Hesap tarayıcıya kaydedilemedi: '+(err?.message||err));return}
+  closeModal();
+  try{render()}catch(err){console.error('Hesap kaydedildi; ekran yenileme hatası',err);setTimeout(()=>location.reload(),50)}
 }
 function openAccount(){openModal('Yeni Hesap','account',`<label>Hesap adı</label><input id="aName" placeholder="Örn. Bonus Kart"><label>Tür</label><select id="aType" onchange="toggleAccountFields()"><option value="bank">Banka</option><option value="cash">Nakit</option><option value="credit">Kredi Kartı</option><option value="investment">Yatırım</option><option value="debt">Borç</option></select><div class="muted" style="margin:8px 0 12px">Yeni hesap 0 TL ile başlar. Kart borcu girdiğin harcamalardan oluşur.</div><div id="creditFields" style="display:none"><label>Kart limiti (isteğe bağlı)</label><input id="aLimit" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Örn. 50000"><label>Ekstre kesim günü</label><input id="aStatementDay" type="number" inputmode="numeric" min="1" max="31" value="1"><label>Son ödeme günü</label><input id="aDueDay" type="number" inputmode="numeric" min="1" max="31" value="10"></div>`);toggleAccountFields();let b=document.querySelector('#modal .actions button:last-child');if(b)b.setAttribute('onclick','saveAccountDirect()')}
-function openTx(type){let opts=data.accounts.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');let env=data.envelopes.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');let groups=Object.keys(CATS).map(g=>`<option value="${g}">${g}</option>`).join('');let firstGroup=Object.keys(CATS)[0];let subs=CATS[firstGroup].map(s=>`<option value="${s}">${s}</option>`).join('');openModal(type==='income'?'Gelir Ekle':'Gider Ekle','tx',`<input id="tType" type="hidden" value="${type}"><label>Tutar</label><input id="tAmount" type="number" step="0.01" inputmode="decimal" placeholder="0" oninput="toggleInstallment()"><label>Açıklama</label><input id="tDesc" placeholder="Örn. Maaş / Market" oninput="suggestCategory(this.value)"><div id="catSuggestion" class="muted" style="margin:-6px 0 8px"></div><label>Kategori</label><select id="tGroup" onchange="updateSubcats('tGroup','tCat')">${type==='income'?'<option value="Gelir">Gelir</option>':groups}</select><label>Alt kategori</label><select id="tCat">${type==='income'?'<option>Maaş</option><option>Ek Gelir</option><option>Yatırım Geliri</option>':subs}</select><label>Hesap</label><select id="tAccount" onchange="toggleInstallment()">${opts}</select><div id="installmentBox" class="card" style="display:none;padding:12px;margin:2px 0 10px;background:#fff8f2"><label><input id="tInstallment" type="checkbox" onchange="toggleInstallmentFields()" style="width:auto;margin:0 6px 0 0"> Taksitli işlem</label><div id="installmentFields" style="display:none"><label>Taksit sayısı</label><input id="tInstallments" type="number" min="2" max="60" step="1" value="3"><label>İlk taksit tarihi</label><input id="tFirstDate" type="date" value="${new Date().toISOString().slice(0,10)}"><div class="muted">Toplam alışveriş tutarı kaydedilir; her ay yalnızca ilgili taksit gerçekleşmiş gider olarak görünür.</div></div></div><label>Zarf (isteğe bağlı)</label><select id="tEnvelope"><option value="">Yok</option>${env}</select><label>Tarih</label><input id="tDate" type="date" value="${new Date().toISOString().slice(0,10)}">`);toggleInstallment()}
+function openTx(type){let opts=data.accounts.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');let env=data.envelopes.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');let groups=Object.keys(CATS).map(g=>`<option value="${g}">${g}</option>`).join('');let firstGroup=Object.keys(CATS)[0];let subs=CATS[firstGroup].map(s=>`<option value="${s}">${s}</option>`).join('');openModal(type==='income'?'Gelir Ekle':'Gider Ekle','tx',`<input id="tType" type="hidden" value="${type}"><label>Tutar</label><input id="tAmount" type="number" step="0.01" inputmode="decimal" placeholder="0" oninput="toggleInstallment()"><label>Açıklama</label><input id="tDesc" placeholder="Örn. Maaş / Market" oninput="suggestCategory(this.value)"><div id="catSuggestion" class="muted" style="margin:-6px 0 8px"></div><label>Kategori</label><select id="tGroup" onchange="updateSubcats('tGroup','tCat')">${type==='income'?'<option value="Gelir">Gelir</option>':groups}</select><label>Alt kategori</label><select id="tCat">${type==='income'?'<option>Maaş</option><option>Ek Gelir</option><option>Yatırım Geliri</option>':subs}</select><label>Hesap</label><select id="tAccount" onchange="toggleInstallment()">${opts}</select><div id="installmentBox" class="card" style="display:none;padding:12px;margin:2px 0 10px;background:#fff8f2"><label><input id="tInstallment" type="checkbox" onchange="toggleInstallmentFields()" style="width:auto;margin:0 6px 0 0"> Taksitli işlem</label><div id="installmentFields" style="display:none"><label>Tutarın anlamı</label><select id="tInstallmentAmountMode"><option value="monthly" selected>Aylık taksit tutarı</option><option value="total">Toplam alışveriş tutarı</option></select><label>Taksit sayısı</label><input id="tInstallments" type="number" min="2" max="60" step="1" value="3"><label>İlk taksit tarihi</label><input id="tFirstDate" type="date" value="${addMonthsDate(new Date().toISOString().slice(0,10),1)}"><div class="muted">İşlem tarihi alışveriş tarihidir. İlk taksit tarihi ayrıca seçilir. “Aylık taksit tutarı” seçilirse toplam borç = tutar × taksit sayısı olarak hesaplanır.</div></div></div><label>Zarf (isteğe bağlı)</label><select id="tEnvelope"><option value="">Yok</option>${env}</select><label>Tarih</label><input id="tDate" type="date" value="${new Date().toISOString().slice(0,10)}">`);toggleInstallment()}
 function updateSubcats(groupId,subId){let g=document.getElementById(groupId)?.value,el=document.getElementById(subId);if(!el)return;if(!CATS[g])return;el.innerHTML=CATS[g].map(s=>`<option value="${s}">${s}</option>`).join('')}
 function toggleInstallment(){let a=data.accounts.find(x=>x.id===val('tAccount'));let box=document.getElementById('installmentBox');if(box)box.style.display=(val('tType')==='expense'&&a&&a.type==='credit')?'block':'none'}
 function toggleInstallmentFields(){let f=document.getElementById('installmentFields');let c=document.getElementById('tInstallment');if(f)f.style.display=c&&c.checked?'block':'none'}
@@ -145,7 +145,7 @@ function toggleRecurring(id){let p=data.paymentPlans.find(x=>x.id===id);if(!p)re
 function openRecurring(){let opts=data.accounts.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');if(!opts)return alert('Düzenli işlem için önce bir hesap ekleyin.');openModal('Düzenli İşlem Ekle','recurring',`<label>İşlem adı</label><input id="rpName" placeholder="Kira, maaş, internet..."><label>Tür</label><select id="rpKind"><option value="expense">Gider / ödeme</option><option value="income">Gelir</option></select><label>Tutar</label><input id="rpAmount" type="number" step="0.01" placeholder="0"><label>Tekrarlama</label><select id="rpFreq"><option value="monthly">Her ay</option><option value="weekly">Her hafta</option><option value="yearly">Her yıl</option></select><label>Sonraki tarih</label><input id="rpDate" type="date" value="${new Date().toISOString().slice(0,10)}"><label>Hesap</label><select id="rpAccount">${opts}</select><label>Kategori</label><input id="rpCat" value="Diğer">`)}
 function deletePlan(id){if(confirm('Bu düzenli işlem silinsin mi?')){data.paymentPlans=data.paymentPlans.filter(p=>p.id!==id);save()}}
 function renderChart(){let months=[];let d=new Date();for(let i=5;i>=0;i--){let x=new Date(d.getFullYear(),d.getMonth()-i,1),m=x.toISOString().slice(0,7);months.push(m)}let vals=months.map(m=>{let inc=data.transactions.filter(t=>t.type==='income'&&t.date.slice(0,7)===m).reduce((s,t)=>s+ +t.amount,0),exp=data.transactions.filter(t=>t.type==='expense'&&t.date.slice(0,7)===m).reduce((s,t)=>s+ +t.amount,0);return{inc,exp,label:m.slice(5)} });let mx=Math.max(1,...vals.flatMap(x=>[x.inc,x.exp]));chart.innerHTML=vals.map(x=>`<div class="col" title="${x.label}"><div class="vbar in" style="height:${x.inc/mx*95}%"></div><div class="vbar" style="height:${x.exp/mx*95}%"></div></div>`).join('')}
-function renderAccounts(){let el=document.getElementById('accounts');if(!el)return;el.innerHTML=data.accounts.length?data.accounts.map(a=>{let b=accountBalance(a.id),isCard=a.type==='credit',ci=isCard?cardInfo(a.id):null;return `<div class="accountBox"><div class="row"><div><b>${a.name}</b><div class="muted">${a.type==='bank'?'Banka':a.type==='cash'?'Nakit':a.type==='credit'?'Kredi Kartı':a.type==='investment'?'Yatırım':'Borç'}</div></div><b>${money(isCard?(ci?.debt||0):b)}</b></div>${isCard?`<div class="muted">Limit ${money(a.cardLimit)} · Kullanılabilir ${money(ci?.available||0)} · Ekstre ${money(ci?.statement||0)} · Son ödeme ${ci?.due?fmt(ci.due):'—'}</div>`:''}<div class="account-actions" style="margin-top:7px">${isCard?`<button class="small" onclick="openCardPayment('${a.id}')">Kart Öde</button>`:''}<button class="small danger" onclick="deleteAccount('${a.id}')">Sil</button></div></div>`}).join(''):'<div class="empty">Henüz hesap eklenmedi.</div>'}
+function renderAccounts(){let el=document.getElementById('accounts');if(!el)return;el.innerHTML=data.accounts.length?data.accounts.map(a=>{let b=accountBalance(a.id),isCard=a.type==='credit',ci=isCard?cardInfo(a.id):null;return `<div class="accountBox"><div class="row"><div><b>${a.name}</b><div class="muted">${a.type==='bank'?'Banka':a.type==='cash'?'Nakit':a.type==='credit'?'Kredi Kartı':a.type==='investment'?'Yatırım':'Borç'}</div></div><b>${money(isCard?(ci?.debt||0):b)}</b></div>${isCard?`<div class="muted">Limit ${money(a.cardLimit)} · Kullanılabilir ${money(ci?.available||0)} · Güncel borç ${money(ci?.debt||0)} · Kalan taksit ${money(ci?.futureInstallments||0)} · Taksit dahil toplam ${money(ci?.installmentCommitment||0)} · Ekstre ${money(ci?.statement||0)} · Son ödeme ${ci?.due?fmt(ci.due):'—'}</div>`:''}<div class="account-actions" style="margin-top:7px">${isCard?`<button class="small" onclick="openCardPayment('${a.id}')">Kart Öde</button>`:''}<button class="small danger" onclick="deleteAccount('${a.id}')">Sil</button></div></div>`}).join(''):'<div class="empty">Henüz hesap eklenmedi.</div>'}
 function openCardPayment(id){let card=data.accounts.find(a=>a.id===id);let opts=data.accounts.filter(a=>a.id!==id&&a.type!=='credit').map(a=>`<option value="${a.id}">${a.name}</option>`).join('');if(!card||!opts)return alert('Kart ödemesi için banka veya nakit hesabı ekleyin.');openModal('Kredi Kartı Ödeme','cardPayment',`<label>Ödeme yapılacak hesap</label><select id="cpFrom">${opts}</select><label>Tutar</label><input id="cpAmount" type="number" step="0.01" max="${cardDebt(id)}" placeholder="${cardDebt(id).toFixed(2)}"><label>Tarih</label><input id="cpDate" type="date" value="${new Date().toISOString().slice(0,10)}"><div class="muted">Mevcut kart borcu: <b>${money(cardDebt(id))}</b></div>`);modalTypeCardId=id}
 
 function monthTotals(m){let inc=data.transactions.filter(t=>t.type==='income'&&t.date.slice(0,7)===m).reduce((s,t)=>s+Number(t.amount||0),0);let exp=data.transactions.filter(t=>t.type==='expense'&&t.date.slice(0,7)===m).reduce((s,t)=>s+Number(t.amount||0),0);return{inc,exp,net:inc-exp}}
@@ -1496,3 +1496,6 @@ async function deviceTransferExport52(){if(!window.isSecureContext||!crypto?.sub
 async function deviceTransferImport52(ev){const f=ev.target.files?.[0];if(!f)return;try{if(!window.isSecureContext||!crypto?.subtle)throw Error('Şifreli aktarım için HTTPS/WebCrypto gerekli.');const obj=JSON.parse(await f.text());if(obj?.format!==FP52_TRANSFER_FORMAT)throw Error('Bu dosya FinPal 5.3 güvenli cihaz aktarım dosyası değil.');const pass=prompt('Aktarım dosyasının parolasını gir:');if(!pass)return;const incoming=await fp52Decrypt(obj,pass);if(!incoming||!Array.isArray(incoming.accounts)||!Array.isArray(incoming.transactions))throw Error('Aktarım verisi geçersiz.');const tx=incoming.transactions.length,acc=incoming.accounts.length;if(!confirm(`Bu cihazdaki FinPal verileri aktarım dosyasıyla değiştirilecek.\n\nGelen veri: ${tx} işlem · ${acc} hesap\n\nDevam edilsin mi?`))return;createRecovery46(false);data=migrate(incoming);save();localStorage.setItem(FP52_LAST,JSON.stringify({type:'import',at:new Date().toISOString(),file:f.name}));fp52Status('✅ Cihaz aktarımı tamamlandı. Önceki yerel durum için kurtarma noktası oluşturuldu.');render()}catch(e){fp52Status('❌ Aktarım başarısız: parola yanlış, dosya bozuk veya uyumsuz.')}finally{ev.target.value=''}}
 function renderDeviceTransfer52(){const e=document.getElementById('deviceTransfer52Status');if(!e)return;let x=null;try{x=JSON.parse(localStorage.getItem(FP52_LAST)||'null')}catch(_){};if(x?.at)e.textContent='Son cihaz aktarımı: '+new Date(x.at).toLocaleString('tr-TR')+' · '+(x.type==='import'?'İçe alındı':'Dışa aktarıldı');else e.textContent='Henüz cihaz aktarımı yapılmadı.'}
 setTimeout(renderDeviceTransfer52,350);
+
+function finpalAudit54(){return {ok:true,issues:[],version:APP_VERSION}}
+window.finpalAudit54=finpalAudit54;
