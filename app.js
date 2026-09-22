@@ -1,6 +1,6 @@
 
 const KEY='finpalData';
-const APP_VERSION=24;
+const APP_VERSION=25;
 const CATS={"Konut":["Kira","Aidat","Elektrik","Su","Doğalgaz","İnternet","Ev Bakımı"],"Gıda":["Market","Kasap","Restoran","Kafe"],"Ulaşım":["Yakıt","Toplu Taşıma","Otopark","Bakım"],"Sağlık":["Muayene","İlaç","Diş"],"Eğitim":["Kurs","Kitap","Okul"],"Abonelik":["Telefon","Netflix","Spotify","Diğer"],"Giyim":["Kıyafet","Ayakkabı"],"Eğlence":["Sinema","Hobi","Tatil"],"Borçlar":["Kredi","Kredi Kartı","Diğer"],"Yatırım":["Altın","Döviz","Hisse","Fon"],"Diğer":["Diğer"]};
 let data=load(), modalType=null, modalTypeCardId=null, budgetMonth=month(), reportMonth=month();
 try{snapshotNetWorth45();localStorage.setItem(KEY,JSON.stringify(data))}catch(e){}
@@ -15,7 +15,7 @@ function snapshotNetWorth45(){
   if(i>=0)data.netWorthHistory[i]=entry;else data.netWorthHistory.push(entry);
   data.netWorthHistory=data.netWorthHistory.sort((a,b)=>a.date.localeCompare(b.date)).slice(-730);
 }
-function save(){snapshotNetWorth45();localStorage.setItem(KEY,JSON.stringify(data));render()}
+function save(){snapshotNetWorth45();localStorage.setItem(KEY,JSON.stringify(data));try{render()}catch(e){console.error('FinPal render hatası:',e)}}
 function money(n){return new Intl.NumberFormat('tr-TR',{style:'currency',currency:'TRY',maximumFractionDigits:2}).format(Number(n)||0)}
 function month(d=new Date()){return d.toISOString().slice(0,7)}
 function fmt(d){return new Date(d).toLocaleDateString('tr-TR')}
@@ -33,9 +33,39 @@ function totals(){let assets=0,liab=0;data.accounts.forEach(a=>{let b=accountBal
 function tab(id,btn){document.querySelectorAll('section[id]').forEach(s=>s.classList.add('hide'));document.getElementById(id).classList.remove('hide');document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');render()}
 function openModal(title,type,body){modalType=type;document.getElementById('modalTitle').textContent=title;document.getElementById('modalBody').innerHTML=body;document.getElementById('modal').classList.add('on')}
 function closeModal(){document.getElementById('modal').classList.remove('on');modalType=null;let b=document.querySelector('#modal .actions button:last-child');if(b)b.style.display='block'}
-function val(id){return document.getElementById(id).value}
+function val(id){const el=document.getElementById(id);return el?el.value:''}
 function submitModal(){let m=modalType;if(m==='account'){let name=val('aName').trim(),type=val('aType');if(!name)return alert('Hesap adı gerekli.');let a={id:uid(),name,type,opening:0};if(type==='credit'){a.cardLimit=Math.max(0,+val('aLimit')||0);a.statementDay=Math.min(31,Math.max(1,+val('aStatementDay')||1));a.dueDay=Math.min(31,Math.max(1,+val('aDueDay')||10));}data.accounts.push(a);save();closeModal()}
-else if(m==='tx'){let type=val('tType'),amount=+val('tAmount'),desc=val('tDesc').trim(),group=val('tGroup')||'Diğer',cat=val('tCat'),accountId=val('tAccount'),envelopeId=val('tEnvelope'),date=val('tDate');if(!(amount>0)||!accountId)return alert('Tutar ve hesap gerekli.');let acc=data.accounts.find(a=>a.id===accountId);let installment=document.getElementById('tInstallment')?.checked;let count=Math.max(2,Math.min(60,Number(val('tInstallments')||2)));let firstDate=val('tFirstDate')||date;if(type==='expense'&&acc&&acc.type==='credit'){let available=creditAvailable(accountId);if(amount>available)return alert('Kredi kartı limitini aşıyorsunuz. Kullanılabilir limit: '+money(available));if(installment){let group=uid(),baseAmount=Math.floor((amount/count)*100)/100,rest=Math.round((amount-baseAmount*(count-1))*100)/100;for(let i=0;i<count;i++){data.transactions.push({id:uid(),type,amount:i===count-1?rest:baseAmount,description:desc||'Taksitli alışveriş',category:cat,categoryGroup:group,categorySubcategory:cat,accountId,envelopeId,date:addMonthsDate(firstDate,i),installmentGroup:group,installmentNo:i+1,installmentCount:count,installmentTotal:amount});}}else data.transactions.push({id:uid(),type,amount,description:desc,category:cat,categoryGroup:group,categorySubcategory:cat,accountId,envelopeId,date});}else data.transactions.push({id:uid(),type,amount,description:desc,category:cat,categoryGroup:group,categorySubcategory:cat,accountId,envelopeId,date});save();closeModal()}
+else if(m==='tx'){
+  const type=val('tType')||'expense';
+  const amount=Number(val('tAmount'));
+  const desc=val('tDesc').trim();
+  const categoryGroup=val('tGroup')||'Diğer';
+  const categorySubcategory=val('tCat')||'Diğer';
+  const accountId=val('tAccount');
+  const envelopeId=val('tEnvelope');
+  const date=val('tDate')||new Date().toISOString().slice(0,10);
+  if(!(amount>0))return alert('Tutar 0’dan büyük olmalı.');
+  if(!accountId)return alert('Lütfen bir hesap seçin.');
+  const acc=data.accounts.find(a=>a.id===accountId);
+  if(!acc)return alert('Seçilen hesap bulunamadı. Hesaplar bölümünü kontrol edin.');
+  const installment=!!document.getElementById('tInstallment')?.checked && type==='expense' && acc.type==='credit';
+  const count=Math.max(2,Math.min(60,Number(val('tInstallments'))||2));
+  const firstDate=val('tFirstDate')||date;
+  if(type==='expense'&&acc.type==='credit'){
+    const limit=Number(acc.cardLimit||0);
+    if(limit>0){const available=creditAvailable(accountId);if(amount>available)return alert('Kredi kartı limitini aşıyorsunuz. Kullanılabilir limit: '+money(available));}
+  }
+  if(installment){
+    const installmentGroup=uid();
+    const baseAmount=Math.floor((amount/count)*100)/100;
+    const rest=Math.round((amount-baseAmount*(count-1))*100)/100;
+    for(let i=0;i<count;i++)data.transactions.push({id:uid(),type:'expense',amount:i===count-1?rest:baseAmount,description:desc||'Taksitli alışveriş',category:categorySubcategory,categoryGroup,categorySubcategory,accountId,envelopeId,date:addMonthsDate(firstDate,i),installmentGroup,installmentNo:i+1,installmentCount:count,installmentTotal:amount});
+  }else{
+    data.transactions.push({id:uid(),type,amount,description:desc,category:categorySubcategory,categoryGroup,categorySubcategory,accountId,envelopeId,date});
+  }
+  try{save()}catch(e){console.error('FinPal gider kayıt hatası:',e);return alert('Kayıt tarayıcıya yazılamadı. Depolama iznini veya boş alanı kontrol edin.');}
+  closeModal();
+}
 else if(m==='cardPayment'){let to=modalTypeCardId,from=val('cpFrom'),amount=+val('cpAmount'),date=val('cpDate');if(!(amount>0)||!to||!from)return alert('Ödeme bilgilerini kontrol edin.');if(amount>cardDebt(to))return alert('Ödeme tutarı mevcut kart borcundan fazla olamaz.');if(amount>accountBalance(from))return alert('Ödeme yapılacak hesapta yeterli bakiye yok.');data.transactions.push({id:uid(),type:'transfer',amount,from,to,description:'Kredi Kartı Ödemesi',date});save();closeModal()}
 else if(m==='budget'){let group=val('bGroup'),cat=val('bCat'),amount=+val('bAmount'),env=val('bEnv')||null,mth=val('bMonth')||month();if(!(amount>0)||!group||!cat)return alert('Kategori ve tutar gerekli.');let old=data.budgets.find(x=>(x.categorySubcategory||x.category)===cat&&x.month===mth);if(old){old.amount=amount;old.envelopeId=env;old.categoryGroup=group;old.categorySubcategory=cat;old.category=cat}else data.budgets.push({id:uid(),category:cat,categoryGroup:group,categorySubcategory:cat,amount,month:mth,envelopeId:env});budgetMonth=mth;save();closeModal()}
 else if(m==='envelope'){let name=val('eName').trim(),budget=+val('eBudget')||0;if(!name||budget<0)return alert('Bilgileri kontrol edin.');data.envelopes.push({id:uid(),name,budget,spent:0});save();closeModal()}}
@@ -55,18 +85,9 @@ function saveAccountDirect(){
     }
     if(!Array.isArray(data.accounts))data.accounts=[];
     data.accounts.push(a);
-    try{
-      localStorage.setItem(KEY,JSON.stringify(data));
-    }catch(storageErr){
-      data.accounts=data.accounts.filter(x=>x.id!==a.id);
-      throw storageErr;
-    }
+    localStorage.setItem(KEY,JSON.stringify(data));
     closeModal();
-    try{render();}
-    catch(renderErr){
-      console.error('Hesap kaydedildi ancak ekran yenilenemedi',renderErr);
-      try{location.reload();}catch(_e){}
-    }
+    render();
   }catch(err){console.error('Hesap kaydetme hatası',err);alert('Hesap kaydedilemedi: '+(err?.message||err));}
 }
 function openAccount(){openModal('Yeni Hesap','account',`<label>Hesap adı</label><input id="aName" placeholder="Örn. Bonus Kart"><label>Tür</label><select id="aType" onchange="toggleAccountFields()"><option value="bank">Banka</option><option value="cash">Nakit</option><option value="credit">Kredi Kartı</option><option value="investment">Yatırım</option><option value="debt">Borç</option></select><div class="muted" style="margin:8px 0 12px">Yeni hesap 0 TL ile başlar. Kart borcu girdiğin harcamalardan oluşur.</div><div id="creditFields" style="display:none"><label>Kart limiti (isteğe bağlı)</label><input id="aLimit" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Örn. 50000"><label>Ekstre kesim günü</label><input id="aStatementDay" type="number" inputmode="numeric" min="1" max="31" value="1"><label>Son ödeme günü</label><input id="aDueDay" type="number" inputmode="numeric" min="1" max="31" value="10"></div>`);toggleAccountFields();let b=document.querySelector('#modal .actions button:last-child');if(b)b.setAttribute('onclick','saveAccountDirect()')}
