@@ -1,6 +1,6 @@
 
 const KEY='finpalData';
-const APP_VERSION=32;
+const APP_VERSION=33;
 const CATS={"Konut":["Kira","Aidat","Elektrik","Su","Doğalgaz","İnternet","Ev Bakımı"],"Gıda":["Market","Kasap","Restoran","Kafe"],"Ulaşım":["Yakıt","Toplu Taşıma","Otopark","Bakım"],"Sağlık":["Muayene","İlaç","Diş"],"Eğitim":["Kurs","Kitap","Okul"],"Abonelik":["Telefon","Netflix","Spotify","Diğer"],"Giyim":["Kıyafet","Ayakkabı"],"Eğlence":["Sinema","Hobi","Tatil"],"Borçlar":["Kredi","Kredi Kartı","Diğer"],"Yatırım":["Altın","Döviz","Hisse","Fon"],"Diğer":["Diğer"]};
 let data=load(), modalType=null, modalTypeCardId=null, budgetMonth=month(), reportMonth=month();
 try{snapshotNetWorth45();localStorage.setItem(KEY,JSON.stringify(data))}catch(e){}
@@ -37,7 +37,15 @@ function setInstallmentPaidCount(groupId,count){const rows=data.transactions.fil
 function changeInstallmentPaidCount(groupId){const rows=data.transactions.filter(t=>t.installmentGroup===groupId);if(!rows.length)return;const max=Math.max(...rows.map(t=>Number(t.installmentCount||t.installmentNo||0)),0);const grp=installmentGroupsForCard(rows[0].accountId).find(g=>g.groupId===groupId);const cur=rows[0].installmentPaidCount!==undefined?Number(rows[0].installmentPaidCount):Number(grp?.paid||0);const v=prompt('Kaç taksit ödendi? (0-'+max+')',String(Math.min(max,cur)));if(v===null)return;const n=Number(v);if(!Number.isInteger(n)||n<0||n>max)return alert('0 ile '+max+' arasında tam sayı girin.');setInstallmentPaidCount(groupId,n)}
 function deleteInstallmentGroup(groupId){if(!confirm('Bu taksitli alışverişin tüm taksitleri silinsin mi?'))return;data.transactions=data.transactions.filter(t=>t.installmentGroup!==groupId);save()}
 function cardDebt(id){let today=new Date();today.setHours(23,59,59,999);let expenses=data.transactions.filter(t=>t.accountId===id&&t.type==='expense'&&!t.installmentGroup&&new Date((t.date||'9999-12-31')+'T23:59:59')<=today).reduce((s,t)=>s+Number(t.amount||0),0);let payments=data.transactions.filter(t=>t.type==='transfer'&&t.to===id&&new Date((t.date||'9999-12-31')+'T23:59:59')<=today).reduce((s,t)=>s+Number(t.amount||0),0);return Math.max(0,expenses-payments)}
-function cardFutureInstallments(id){return installmentGroupsForCard(id).reduce((s,g)=>s+g.remaining,0)}
+function cardFutureInstallments(id){return installmentGroupsForCard(id).reduce((s,g)=>s+g.remaining,0)} function cardMonthlyInstallmentDue(id,baseDate=new Date()){
+  const ym=baseDate.getFullYear()+'-'+String(baseDate.getMonth()+1).padStart(2,'0');
+  return installmentGroupsForCard(id).reduce((sum,g)=>{
+    const row=(g.remainingRows||[]).find(t=>(t.date||'').slice(0,7)===ym);
+    return sum+Number(row?.amount||0);
+  },0)
+} function monthlyCardDebtTotal(baseDate=new Date()){
+  return (data.accounts||[]).filter(a=>a.type==='credit').reduce((s,a)=>s+cardMonthlyInstallmentDue(a.id,baseDate),0)
+}
 function cardInstallmentCommitment(id){return cardDebt(id)+cardFutureInstallments(id)}
 function creditAvailable(id){let a=data.accounts.find(x=>x.id===id);if(!a||a.type!=='credit')return 0;let limit=Number(a.cardLimit||0);if(limit<=0)return 0;return Math.max(0,limit-cardInstallmentCommitment(id))}
 function dateFromDay(year,month,day){let last=new Date(year,month+1,0).getDate();return new Date(year,month,Math.min(Math.max(1,day),last))}
@@ -46,7 +54,7 @@ function cardStatement(id){let c=cardCycle(id);if(!c)return 0;return data.transa
 function cardInfo(id){let a=data.accounts.find(x=>x.id===id),c=cardCycle(id);if(!a||!c)return null;return {debt:cardDebt(id),futureInstallments:cardFutureInstallments(id),installmentCommitment:cardInstallmentCommitment(id),available:creditAvailable(id),statement:Math.max(0,cardStatement(id)),due:c.due}}
 function trackedAssetTotal(){return data.assets.reduce((s,a)=>s+Number(a.quantity||0)*Number(a.currentPrice||0),0)}
 function trackedAssetCost(){return data.assets.reduce((s,a)=>s+Number(a.quantity||0)*Number(a.unitCost||0),0)}
-function totals(){let assets=0,liab=0;data.accounts.forEach(a=>{if(a.type==='credit'){liab+=Math.max(0,cardInstallmentCommitment(a.id));return}let b=accountBalance(a.id);if(a.type==='debt')liab+=Math.max(0,-b||b);else assets+=Math.max(0,b)});assets+=trackedAssetTotal();let mi=data.transactions.filter(t=>t.type==='income'&&t.date.slice(0,7)===month()).reduce((s,t)=>s+ +t.amount,0),me=data.transactions.filter(t=>t.type==='expense'&&t.date.slice(0,7)===month()).reduce((s,t)=>s+ +t.amount,0);return{assets,liab,net:assets-liab,mi,me}}
+function totals(){let assets=0,liab=0;data.accounts.forEach(a=>{if(a.type==='credit'){liab+=Math.max(0,cardInstallmentCommitment(a.id));return}let b=accountBalance(a.id);if(a.type==='debt')liab+=Math.max(0,-b||b);else assets+=Math.max(0,b)});assets+=trackedAssetTotal();let mi=data.transactions.filter(t=>t.type==='income'&&t.date.slice(0,7)===month()).reduce((s,t)=>s+ +t.amount,0),me=data.transactions.filter(t=>t.type==='expense'&&!t.installmentGroup&&t.date.slice(0,7)===month()).reduce((s,t)=>s+ +t.amount,0)+monthlyCardDebtTotal(new Date());return{assets,liab,net:assets-liab,mi,me}}
 
 function tab(id,btn){document.querySelectorAll('section[id]').forEach(s=>s.classList.add('hide'));document.querySelectorAll('.tabContent').forEach(s=>s.style.display='none');let target=document.getElementById(id);if(target)target.classList.remove('hide');else{target=document.getElementById('tab-'+id);if(target)target.style.display='block'}if(!target){console.warn('FinPal sekmesi bulunamadı:',id);return}document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');try{render()}catch(e){console.error('FinPal sekme render hatası:',e)}if(id==='ai36'&&typeof runAI36==='function')runAI36()}
 function openModal(title,type,body){modalType=type;document.getElementById('modalTitle').textContent=title;document.getElementById('modalBody').innerHTML=body;document.getElementById('modal').classList.add('on')}
