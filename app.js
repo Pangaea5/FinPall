@@ -1,6 +1,6 @@
 
 const KEY='finpalData';
-const APP_VERSION=30;
+const APP_VERSION=31;
 const CATS={"Konut":["Kira","Aidat","Elektrik","Su","Doğalgaz","İnternet","Ev Bakımı"],"Gıda":["Market","Kasap","Restoran","Kafe"],"Ulaşım":["Yakıt","Toplu Taşıma","Otopark","Bakım"],"Sağlık":["Muayene","İlaç","Diş"],"Eğitim":["Kurs","Kitap","Okul"],"Abonelik":["Telefon","Netflix","Spotify","Diğer"],"Giyim":["Kıyafet","Ayakkabı"],"Eğlence":["Sinema","Hobi","Tatil"],"Borçlar":["Kredi","Kredi Kartı","Diğer"],"Yatırım":["Altın","Döviz","Hisse","Fon"],"Diğer":["Diğer"]};
 let data=load(), modalType=null, modalTypeCardId=null, budgetMonth=month(), reportMonth=month();
 try{snapshotNetWorth45();localStorage.setItem(KEY,JSON.stringify(data))}catch(e){}
@@ -34,7 +34,7 @@ function cardStatement(id){let c=cardCycle(id);if(!c)return 0;return data.transa
 function cardInfo(id){let a=data.accounts.find(x=>x.id===id),c=cardCycle(id);if(!a||!c)return null;return {debt:cardDebt(id),futureInstallments:cardFutureInstallments(id),installmentCommitment:cardInstallmentCommitment(id),available:creditAvailable(id),statement:Math.max(0,cardStatement(id)),due:c.due}}
 function trackedAssetTotal(){return data.assets.reduce((s,a)=>s+Number(a.quantity||0)*Number(a.currentPrice||0),0)}
 function trackedAssetCost(){return data.assets.reduce((s,a)=>s+Number(a.quantity||0)*Number(a.unitCost||0),0)}
-function totals(){let assets=0,liab=0;data.accounts.forEach(a=>{let b=accountBalance(a.id);if(a.type==='debt'||a.type==='credit')liab+=Math.max(0,-b||b);else assets+=Math.max(0,b)});assets+=trackedAssetTotal();let mi=data.transactions.filter(t=>t.type==='income'&&t.date.slice(0,7)===month()).reduce((s,t)=>s+ +t.amount,0),me=data.transactions.filter(t=>t.type==='expense'&&t.date.slice(0,7)===month()).reduce((s,t)=>s+ +t.amount,0);return{assets,liab,net:assets-liab,mi,me}}
+function totals(){let assets=0,liab=0;data.accounts.forEach(a=>{if(a.type==='credit'){liab+=Math.max(0,cardInstallmentCommitment(a.id));return}let b=accountBalance(a.id);if(a.type==='debt')liab+=Math.max(0,-b||b);else assets+=Math.max(0,b)});assets+=trackedAssetTotal();let mi=data.transactions.filter(t=>t.type==='income'&&t.date.slice(0,7)===month()).reduce((s,t)=>s+ +t.amount,0),me=data.transactions.filter(t=>t.type==='expense'&&t.date.slice(0,7)===month()).reduce((s,t)=>s+ +t.amount,0);return{assets,liab,net:assets-liab,mi,me}}
 
 function tab(id,btn){document.querySelectorAll('section[id]').forEach(s=>s.classList.add('hide'));document.querySelectorAll('.tabContent').forEach(s=>s.style.display='none');let target=document.getElementById(id);if(target)target.classList.remove('hide');else{target=document.getElementById('tab-'+id);if(target)target.style.display='block'}if(!target){console.warn('FinPal sekmesi bulunamadı:',id);return}document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');try{render()}catch(e){console.error('FinPal sekme render hatası:',e)}if(id==='ai36'&&typeof runAI36==='function')runAI36()}
 function openModal(title,type,body){modalType=type;document.getElementById('modalTitle').textContent=title;document.getElementById('modalBody').innerHTML=body;document.getElementById('modal').classList.add('on')}
@@ -1102,7 +1102,7 @@ export default {
   function daysInReportMonth(m){let [y,mo]=m.split('-').map(Number);return new Date(y,mo,0).getDate()}
   function netWorth44(){
     let a=0,l=0;
-    (data.accounts||[]).forEach(x=>{let b=Number(accountBalance(x.id)||0);if(x.type==='credit'||x.type==='debt')l+=Math.max(0,Math.abs(Math.min(0,b)));else a+=Math.max(0,b)});
+    (data.accounts||[]).forEach(x=>{if(x.type==='credit'){l+=Math.max(0,Number(cardInstallmentCommitment(x.id)||0));return}let b=Number(accountBalance(x.id)||0);if(x.type==='debt')l+=Math.max(0,Math.abs(Math.min(0,b)));else a+=Math.max(0,b)});
     a+=Number(typeof trackedAssetTotal==='function'?trackedAssetTotal():0);
     (data.obligations||[]).filter(o=>o.type==='debt').forEach(o=>l+=Number(obligationRemaining(o)||0));
     return {assets:a,liabilities:l,net:a-l};
