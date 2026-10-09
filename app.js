@@ -197,7 +197,20 @@ function renderFinancialCenter(){let el=document.getElementById('financialCenter
 function renderAllocationSummary(){let el=document.getElementById('allocationSummary');if(!el)return;let total=totalAllocated(),avail=availableToAssign();el.innerHTML=`<div class="cardMini"><span>Nakit/Banka<br><b>${money(liquidBalance())}</b></span><span>Tahsis edilen<br><b>${money(total)}</b></span><span>Tahsis edilebilir<br><b class="${avail<0?'negative':''}">${money(avail)}</b></span></div>${avail<0?'<div class="danger-text">⚠ Bu ay mevcut nakit bakiyenden fazla para tahsis ettin.</div>':'<div class="muted">Paranı önce amaçlarına tahsis et; harcamalar ilgili zarfın kalanından düşer.</div>'}`}
 function renderBudgets(){let el=document.getElementById('budgets');if(!el)return;let sel=document.getElementById('budgetMonth');if(sel&&sel.value!==budgetMonth)sel.value=budgetMonth;let arr=data.budgets.filter(x=>x.month===budgetMonth);let total=arr.reduce((s,b)=>s+Number(b.amount),0),spent=arr.reduce((s,b)=>s+budgetSpent(b),0),remaining=total-spent;let head=`<div class="cardMini"><span>Limit<br><b>${money(total)}</b></span><span>Harcanan<br><b>${money(spent)}</b></span><span>Kalan<br><b class="${remaining<0?'negative':''}">${money(remaining)}</b></span></div>`;el.innerHTML=head+(arr.length?arr.map(b=>{let s=budgetSpent(b),p=b.amount?Math.round(s/b.amount*100):0;return `<div class="accountBox"><div class="row"><div style="flex:1"><b>${b.categoryGroup||'Diğer'} › ${b.categorySubcategory||b.category}</b><div class="progress"><div class="bar" style="width:${Math.min(100,p)}%"></div></div><span class="muted">${money(s)} / ${money(b.amount)} · ${p}%${s>b.amount?' · ⚠ Limit aşıldı':''}${b.envelopeId?' · 🟠 '+(data.envelopes.find(e=>e.id===b.envelopeId)?.name||'Zarf'):''}</span></div><button class="small danger" onclick="deleteBudget('${b.id}')">Sil</button></div></div>`}).join(''):'<div class="empty">Bu ay için bütçe yok.</div>')}
 function deleteBudget(id){if(confirm('Bu bütçe kaydı silinsin mi?')){data.budgets=data.budgets.filter(b=>b.id!==id);save()}}
-function renderEnvelopes(){let el=document.getElementById('envelopes');if(!el)return;el.innerHTML='<div class="muted">Kayıtlı zarf: '+data.envelopes.length+'</div>'+data.envelopes.map(e=>{let allocated=envelopeAllocated(e.id),carry=envelopeCarryover(e.id),s=envelopeSpent(e.id),avail=envelopeAvailable(e.id),base=allocated+carry,p=base?Math.min(100,s/base*100):0;return `<div class="accountBox"><div class="row"><div style="flex:1"><b>${esc(e.name)}</b><span class="pill">Öncelik ${e.priority||3}</span><div class="progress"><div class="bar" style="width:${p}%"></div></div><span class="muted">Tahsis ${money(allocated)} · Devir ${money(carry)} · Harcanan ${money(s)} · <b>Kalan ${money(avail)}</b>${e.target?` · Hedef ${money(e.target)}`:''}</span></div><button class="small" onclick="editEnvelope('${e.id}')">Düzenle</button></div></div>`}).join('')+(data.envelopes.length?'':'<div class="empty">Henüz zarf yok. + Zarf ile oluşturun.</div>')}
+function renderEnvelopes(){
+ const el=document.getElementById('envelopes');if(!el)return;
+ const envs=Array.isArray(data.envelopes)?data.envelopes:[];
+ let html='<div class="muted">Kayıtlı zarf: '+envs.length+'</div>';
+ for(const e of envs){
+   try{
+     const allocated=envelopeAllocated(e.id),carry=envelopeCarryover(e.id),spent=envelopeSpent(e.id),available=envelopeAvailable(e.id);
+     const base=allocated+carry,p=base?Math.min(100,Math.max(0,spent/base*100)):0;
+     html+=`<div class="accountBox"><div class="row"><div style="flex:1"><b>${esc(e.name||'Adsız zarf')}</b> <span class="pill">Öncelik ${e.priority||3}</span><div class="progress"><div class="bar" style="width:${p}%"></div></div><span class="muted">Tahsis ${money(allocated)} · Devir ${money(carry)} · Harcanan ${money(spent)} · <b>Kalan ${money(available)}</b></span></div><button class="small" onclick="editEnvelope('${e.id}')">Düzenle</button></div></div>`;
+   }catch(err){console.error('Zarf hesaplama hatası',e.id,err);html+=`<div class="accountBox"><b>${esc(e.name||'Adsız zarf')}</b><div class="muted">Zarf kayıtlı, bakiye hesabı kontrol edilmeli.</div><button class="small" onclick="editEnvelope('${e.id}')">Düzenle</button></div>`;}
+ }
+ if(!envs.length)html+='<div class="empty">Henüz zarf yok. + Zarf ile oluşturun.</div>';
+ el.innerHTML=html;
+}
 function renderCategories(){categories.innerHTML=Object.entries(CATS).map(([k,v])=>`<div class="row"><div><b>${k}</b><div class="muted">${v.join(' · ')}</div></div><span class="pill">${v.length} alt kategori</span></div>`).join('')}
 function obligationRemaining(o){return Math.max(0,Number(o.remaining??o.amount??0))}
 function renderObligations(){let el=document.getElementById('obligations');if(!el)return;let arr=[...data.obligations].sort((a,b)=>(a.dueDate||'9999').localeCompare(b.dueDate||'9999'));el.innerHTML=arr.map(o=>{let rem=obligationRemaining(o),pct=Number(o.amount)>0?Math.min(100,Math.round((1-rem/Number(o.amount))*100)):0;let overdue=o.dueDate&&new Date(o.dueDate+'T23:59:59')<new Date()&&rem>0;return `<div class="accountBox"><div class="row"><div><b>${o.type==='debt'?'🔴':'🟢'} ${o.name}</b><div class="muted">${o.type==='debt'?'Borç':'Alacak'}${o.dueDate?' · Vade '+fmt(o.dueDate):''}</div></div><div><b>${money(rem)}</b><div class="muted">Kalan</div></div></div><div class="progress"><div class="bar" style="width:${pct}%"></div></div><div class="muted">Başlangıç ${money(o.amount)} · Ödenen/Tahsil ${money(Number(o.amount)-rem)}${overdue?' · ⛔ Vadesi geçti':''}</div><div class="account-actions" style="margin-top:7px"><button class="small" onclick="openObligationPayment('${o.id}')">${o.type==='debt'?'Ödeme Yap':'Tahsil Et'}</button><button class="small danger" onclick="deleteObligation('${o.id}')">Sil</button></div></div>`}).join('')||'<div class="empty">Henüz borç veya alacak kaydı yok.</div>'}
@@ -608,6 +621,27 @@ function backup(){let blob=new Blob([JSON.stringify(data,null,2)],{type:'applica
 function restore(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(!x||!x.accounts||!x.transactions)throw 0;if(confirm('Mevcut veriler yedek ile değiştirilsin mi?')){data=migrate(x);save();alert('Yedek başarıyla yüklendi.')}}catch(err){alert('Geçersiz FinPal yedeği.')}};r.readAsText(f)}
 function resetData(){if(confirm('TÜM FinPal verileri silinecek. Emin misiniz?')){localStorage.removeItem(KEY);data=base();render()}}
 const prevSubmitObligation=submitModal;submitModal=function(){
+if(modalType==='envelope'){
+ const name=(document.getElementById('eName')?.value||'').trim();
+ const raw=document.getElementById('eBudget')?.value||'0';
+ const target=Number(raw),priority=Number(document.getElementById('ePriority')?.value||3);
+ if(!name)return alert('Zarf adı boş bırakılamaz.');
+ if(!Number.isFinite(target)||target<0)return alert('Geçerli bir hedef tutar girin.');
+ const e={id:uid(),name,budget:target,target,priority:Math.max(1,Math.min(5,priority||3)),rollover:val('eRollover')!=='no'};
+ data.envelopes=Array.isArray(data.envelopes)?data.envelopes:[];
+ data.envelopes.push(e);
+ try{
+   localStorage.setItem(KEY,JSON.stringify(data));
+   const stored=JSON.parse(localStorage.getItem(KEY)||'{}');
+   if(!Array.isArray(stored.envelopes)||!stored.envelopes.some(x=>x.id===e.id))throw Error('Kayıt doğrulanamadı');
+ }catch(err){data.envelopes=data.envelopes.filter(x=>x.id!==e.id);console.error('Zarf kayıt hatası',err);return alert('Zarf kaydedilemedi. Tarayıcı depolamasını kontrol edin.');}
+ closeModal();
+ try{renderEnvelopes()}catch(err){console.error('Zarf liste hatası',err)}
+ try{render()}catch(err){console.error('Genel ekran yenileme hatası',err)}
+ alert('Zarf kaydedildi: '+name);
+ return;
+}
+
 if(modalType==='expenseEdit'){
   let t=data.transactions.find(x=>x.id===val('xeId'));if(!t)return closeModal();
   let amount=+val('xeAmount'),accountId=val('xeAccount'),date=val('xeDate'),group=val('xeGroup')||'Diğer',cat=val('xeCat')||'Diğer';
