@@ -1,6 +1,6 @@
 
 const KEY='finpalData';
-const APP_VERSION=42;
+const APP_VERSION=43;
 const CATS={"Konut":["Kira","Aidat","Elektrik","Su","Doğalgaz","İnternet","Ev Bakımı"],"Gıda":["Market","Kasap","Restoran","Kafe"],"Ulaşım":["Yakıt","Toplu Taşıma","Otopark","Bakım"],"Sağlık":["Muayene","İlaç","Diş"],"Eğitim":["Kurs","Kitap","Okul"],"Abonelik":["Telefon","Netflix","Spotify","Diğer"],"Giyim":["Kıyafet","Ayakkabı"],"Eğlence":["Sinema","Hobi","Tatil"],"Borçlar":["Kredi","Kredi Kartı","Diğer"],"Yatırım":["Altın","Döviz","Hisse","Fon"],"Diğer":["Diğer"]};
 let data=load(), modalType=null, modalTypeCardId=null, budgetMonth=month(), reportMonth=month();
 try{snapshotNetWorth45();localStorage.setItem(KEY,JSON.stringify(data))}catch(e){}
@@ -201,11 +201,14 @@ function renderEnvelopes(){
  const el=document.getElementById('envelopes');if(!el)return;
  const envs=Array.isArray(data.envelopes)?data.envelopes:[];
  let html='<div class="muted">Kayıtlı zarf: '+envs.length+'</div>';
+ const nameCounts={};
+ envs.forEach(e=>{const k=String(e.name||'').trim().toLocaleLowerCase('tr-TR');nameCounts[k]=(nameCounts[k]||0)+1});
+ if(Object.values(nameCounts).some(n=>n>1))html+='<div class="muted" style="color:#a34a12">⚠ Aynı isimde eski kayıtlar var. Kayıtlar otomatik silinmedi; her zarfın Düzenle bölümünden gereksiz olanı kontrol ederek silebilirsiniz.</div>';
  for(const e of envs){
    try{
      const allocated=envelopeAllocated(e.id),carry=envelopeCarryover(e.id),spent=envelopeSpent(e.id),available=envelopeAvailable(e.id);
      const base=allocated+carry,p=base?Math.min(100,Math.max(0,spent/base*100)):0;
-     html+=`<div class="accountBox"><div class="row"><div style="flex:1"><b>${esc(e.name||'Adsız zarf')}</b> <span class="pill">Öncelik ${e.priority||3}</span><div class="progress"><div class="bar" style="width:${p}%"></div></div><span class="muted">Tahsis ${money(allocated)} · Devir ${money(carry)} · Harcanan ${money(spent)} · <b>Kalan ${money(available)}</b></span></div><button class="small" onclick="editEnvelope('${e.id}')">Düzenle</button></div></div>`;
+     html+=`<div class="accountBox"><div class="row"><div style="flex:1"><b>${esc(e.name||'Adsız zarf')}</b> ${nameCounts[String(e.name||'').trim().toLocaleLowerCase('tr-TR')]>1?'<span class="pill">Tekrarlı ad</span>':''} <span class="pill">Öncelik ${e.priority||3}</span><div class="progress"><div class="bar" style="width:${p}%"></div></div><span class="muted">Tahsis ${money(allocated)} · Devir ${money(carry)} · Harcanan ${money(spent)} · <b>Kalan ${money(available)}</b></span></div><button class="small" onclick="editEnvelope('${e.id}')">Düzenle</button></div></div>`;
    }catch(err){console.error('Zarf hesaplama hatası',e.id,err);html+=`<div class="accountBox"><b>${esc(e.name||'Adsız zarf')}</b><div class="muted">Zarf kayıtlı, bakiye hesabı kontrol edilmeli.</div><button class="small" onclick="editEnvelope('${e.id}')">Düzenle</button></div>`;}
  }
  if(!envs.length)html+='<div class="empty">Henüz zarf yok. + Zarf ile oluşturun.</div>';
@@ -622,23 +625,31 @@ function restore(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();
 function resetData(){if(confirm('TÜM FinPal verileri silinecek. Emin misiniz?')){localStorage.removeItem(KEY);data=base();render()}}
 const prevSubmitObligation=submitModal;submitModal=function(){
 if(modalType==='envelope'){
+ if(window.finpalEnvelopeSaving)return;
  const name=(document.getElementById('eName')?.value||'').trim();
- const raw=document.getElementById('eBudget')?.value||'0';
- const target=Number(raw),priority=Number(document.getElementById('ePriority')?.value||3);
+ const target=Number(document.getElementById('eBudget')?.value||0);
+ const priority=Number(document.getElementById('ePriority')?.value||3);
  if(!name)return alert('Zarf adı boş bırakılamaz.');
  if(!Number.isFinite(target)||target<0)return alert('Geçerli bir hedef tutar girin.');
+ const existing=(data.envelopes||[]).find(e=>String(e.name||'').trim().toLocaleLowerCase('tr-TR')===name.toLocaleLowerCase('tr-TR'));
+ if(existing)return alert('Bu isimde bir zarf zaten var: '+existing.name+'. Yeni kayıt oluşturulmadı. Düzenle seçeneğini kullanın.');
+ window.finpalEnvelopeSaving=true;
  const e={id:uid(),name,budget:target,target,priority:Math.max(1,Math.min(5,priority||3)),rollover:val('eRollover')!=='no'};
- data.envelopes=Array.isArray(data.envelopes)?data.envelopes:[];
- data.envelopes.push(e);
  try{
+   data.envelopes=Array.isArray(data.envelopes)?data.envelopes:[];
+   data.envelopes.push(e);
    localStorage.setItem(KEY,JSON.stringify(data));
    const stored=JSON.parse(localStorage.getItem(KEY)||'{}');
-   if(!Array.isArray(stored.envelopes)||!stored.envelopes.some(x=>x.id===e.id))throw Error('Kayıt doğrulanamadı');
- }catch(err){data.envelopes=data.envelopes.filter(x=>x.id!==e.id);console.error('Zarf kayıt hatası',err);return alert('Zarf kaydedilemedi. Tarayıcı depolamasını kontrol edin.');}
- closeModal();
- try{renderEnvelopes()}catch(err){console.error('Zarf liste hatası',err)}
- try{render()}catch(err){console.error('Genel ekran yenileme hatası',err)}
- alert('Zarf kaydedildi: '+name);
+   if(!Array.isArray(stored.envelopes)||stored.envelopes.filter(x=>x.id===e.id).length!==1)throw Error('Kayıt doğrulanamadı');
+   closeModal();
+   try{renderEnvelopes()}catch(err){console.error('Zarf liste hatası',err)}
+   try{render()}catch(err){console.error('Genel ekran yenileme hatası',err)}
+   alert('Zarf kaydedildi: '+name);
+ }catch(err){
+   data.envelopes=data.envelopes.filter(x=>x.id!==e.id);
+   console.error('Zarf kayıt hatası',err);
+   alert('Zarf kaydedilemedi. Tarayıcı depolamasını kontrol edin.');
+ }finally{window.finpalEnvelopeSaving=false}
  return;
 }
 
