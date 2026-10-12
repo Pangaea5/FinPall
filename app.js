@@ -1,6 +1,6 @@
 
 const KEY='finpalData';
-const APP_VERSION=43;
+const APP_VERSION=44;
 const CATS={"Konut":["Kira","Aidat","Elektrik","Su","Doğalgaz","İnternet","Ev Bakımı"],"Gıda":["Market","Kasap","Restoran","Kafe"],"Ulaşım":["Yakıt","Toplu Taşıma","Otopark","Bakım"],"Sağlık":["Muayene","İlaç","Diş"],"Eğitim":["Kurs","Kitap","Okul"],"Abonelik":["Telefon","Netflix","Spotify","Diğer"],"Giyim":["Kıyafet","Ayakkabı"],"Eğlence":["Sinema","Hobi","Tatil"],"Borçlar":["Kredi","Kredi Kartı","Diğer"],"Yatırım":["Altın","Döviz","Hisse","Fon"],"Diğer":["Diğer"]};
 let data=load(), modalType=null, modalTypeCardId=null, budgetMonth=month(), reportMonth=month();
 try{snapshotNetWorth45();localStorage.setItem(KEY,JSON.stringify(data))}catch(e){}
@@ -921,9 +921,9 @@ setTimeout(()=>{try{render30()}catch(e){}},50);
 
 
 function mobileTab(id,btn){
-  const map={dashboard:0,transactions:1,budget:2,finance30:10,more:6};
+  const map={dashboard:'dashboard',transactions:'transactions',budget:'budget',finance30:'finance30',more:'more'};
   const tabs=document.querySelectorAll('.tabs button');
-  tab(id,tabs[map[id]]||tabs[0]);
+  tab(id,Array.from(tabs).find(b=>b.getAttribute('onclick')?.includes("tab('"+id+"',this)"))||tabs[0]);
   document.querySelectorAll('#mobileNav button[data-nav]').forEach(b=>b.classList.toggle('active',b===btn));
   window.scrollTo({top:0,behavior:'smooth'});
 }
