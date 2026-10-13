@@ -117,7 +117,33 @@ input,select,textarea{max-width:100%}
 <p class="muted">PIN • Cihaz doğrulama • Otomatik kilit • Veri koruma</p>
 <p class="muted">PIN kilidini, cihazın desteklediği WebAuthn doğrulamasını ve otomatik kilit süresini buradan yönetebilirsin.</p><div id="securityDetail"></div>
 <div class="actions"><button onclick="openSecurity()">Güvenlik Ayarları</button><button class="secondary" onclick="lockNow47()">🔒 Şimdi Kilitle</button></div>
-<div id="security47Status" class="muted" style="margin-top:8px"></div><div class="securityNote" style="margin-top:12px">Veri koruma: PIN uygulama ekranını kilitler; tarayıcıdaki finans kayıtlarını tek başına şifrelemez. Verilerini güvenli saklamak ve taşımak için Diğer → Şifreli Yedek özelliğini kullan.</div></div></section>
+<div id="security47Status" class="muted" style="margin-top:8px"></div><div class="securityNote" style="margin-top:12px">Veri koruma: PIN uygulama ekranını kilitler; tarayıcıdaki finans kayıtlarını tek başına şifrelemez. Verilerini güvenli saklamak ve taşımak için Diğer → Şifreli Yedek özelliğini kullan.</div></div><style id="fp40-style">
+.fp40-wrap{margin:14px 0}.fp40-card{background:linear-gradient(145deg,#fff7ed,#fff);border:1px solid #fed7aa;border-radius:20px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.05)}
+.fp40-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.fp40-title{font-size:18px;font-weight:850}.fp40-sub{font-size:12px;color:#64748b;margin-top:4px}.fp40-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.fp40-stat{padding:12px;border-radius:14px;background:#fff;border:1px solid #eee}.fp40-stat b{display:block;font-size:17px;margin-top:4px}.fp40-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.fp40-btn{border:0;border-radius:12px;padding:10px 13px;font-weight:750;cursor:pointer;background:#f97316;color:#fff}.fp40-btn.alt{background:#fff7ed;color:#9a3412;border:1px solid #fdba74}.fp40-input{width:100%;box-sizing:border-box;padding:10px 11px;border:1px solid #fed7aa;border-radius:12px;margin-top:7px;background:#fff}.fp40-log{margin-top:10px;font-size:12px;color:#64748b;line-height:1.55}.fp40-ok{color:#15803d;font-weight:750}.fp40-warn{color:#b45309;font-weight:750}@media(max-width:560px){.fp40-grid{grid-template-columns:1fr}.fp40-card{border-radius:16px;padding:13px}}
+</style>
+<div id="fp40-panel" class="fp40-wrap">
+  <div class="fp40-card">
+    <div class="fp40-head"><div><div class="fp40-title">🔐 Sistem ve Yedekleme Merkezi</div><div class="fp40-sub">Güvenli yedekleme, WebCrypto şifreleme, API bağlantı hazırlığı ve ürün sağlık kontrolü.</div></div><span id="fp40Secure" class="fp40-sub">Kontrol ediliyor…</span></div>
+    <div class="fp40-grid">
+      <div class="fp40-stat"><span class="fp40-sub">HTTPS / güvenli bağlam</span><b id="fp40Https">—</b></div>
+      <div class="fp40-stat"><span class="fp40-sub">WebCrypto</span><b id="fp40Crypto">—</b></div>
+      <div class="fp40-stat"><span class="fp40-sub">PWA / Service Worker</span><b id="fp40Pwa">—</b></div>
+      <div class="fp40-stat"><span class="fp40-sub">API endpoint</span><b id="fp40Api">Yapılandırılmadı</b></div>
+    </div>
+    <div style="margin-top:13px"><div class="fp40-sub">Güvenli AI/API proxy adresi (API anahtarı buraya yazılmaz)</div><input id="fp40Endpoint" class="fp40-input" placeholder="https://senin-domainin.com/api/finpal"></div>
+    <div class="fp40-actions">
+      <button class="fp40-btn" onclick="fp40SaveEndpoint()">🔗 Endpoint'i kaydet</button>
+      <button class="fp40-btn alt" onclick="fp40TestEndpoint()">🧪 Bağlantıyı test et</button>
+      <button class="fp40-btn alt" onclick="fp40EncryptedBackup()">🔐 Şifreli yedek</button>
+      <button class="fp40-btn alt" onclick="fp40RestoreEncrypted()">📥 Şifreli geri yükle</button>
+      <button class="fp40-btn alt" onclick="fp40Health()">🩺 Ürün kontrolü</button>
+    </div>
+    <input id="fp40RestoreFile" type="file" accept=".json" style="display:none" onchange="fp40ReadEncrypted(event)">
+    <div id="fp40Log" class="fp40-log">FinPal 4.0 hazır. API anahtarını hiçbir zaman HTML dosyasına koyma.</div>
+  </div>
+</div>
+<div class="card" id="bankingRoadmap" style="margin-top:16px;display:none"><h2>🏦 Açık Bankacılık Entegrasyon Merkezi</h2><p>Türkiye'de ÖHVPS 2.0 ile hesap, kart ve hareket verilerinin kapsamı genişletildi. FinPal burada banka şifresi istemez; gerçek bağlantı yetkili bir açık bankacılık sağlayıcısı üzerinden OAuth/izin akışıyla kurulmalıdır.</p><div class="muted">FinPal tarafı: veri alma → mükerrer kontrolü → otomatik kategori → bütçe → rapor. Banka tarafı: kullanıcı rızası → yetkilendirme → erişim belirteci → veri senkronizasyonu.</div></div>
+</section>
 <section id="shoppingCenter" class="hide">
 <div class="card"><h2>🛒 Alışveriş ve Ürün Takip Merkezi</h2><p class="muted">Alışveriş listesi, hedef fiyat, fiyat geçmişi ve gerçek satın alma maliyetini tek yerde takip et.</p><div class="actions"><button onclick="addShopping()">+ Ürün Ekle</button></div></div>
 <div class="card"><h3>🌐 Fiyat takibi</h3><p class="muted">Sekme açıldığında günde en fazla bir kez kontrol edilir. Uygulama kapalıyken günlük kontrol için ayrıca sunucu zamanlayıcısı kurulmalıdır. Her mağaza fiyat okumaya izin vermeyebilir.</p><div class="actions"><button onclick="setShopPriceEndpoint()">Fiyat Servisi Bağla</button><button class="secondary" onclick="refreshShopPrices(true)">Şimdi Kontrol Et</button></div><div id="shopPriceStatus" class="muted">Fiyat servisi henüz bağlı değil.</div></div><div class="card"><div id="smartShopping"></div></div>
@@ -149,7 +175,7 @@ input,select,textarea{max-width:100%}
 </section>
 <section id="markets" class="hide"><div class="card"><h2>💱 Döviz ve Altın</h2><p class="muted">Bu işlevin tek yönetim ekranı burasıdır.</p></div><div class="card" id="marketCenter" style="margin-top:16px"><h2>📡 Canlı Piyasa Merkezi — TCMB & Altınkaynak</h2><p class="muted">TCMB resmî döviz gösterge satış kurları (USD, EUR, GBP). Bunlar anlık işlem fiyatları değildir. Altın fiyatları Altınkaynak kaynağından ayrı alınır; alış/satış fiyatları gösterilir.</p><div class="actions"><button onclick="refreshMarketRates()">🔄 TCMB Kurlarını Güncelle</button><a href="https://www.tcmb.gov.tr/kurlar/today.xml" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:10px 14px;border-radius:10px;background:#f07818;color:white;text-decoration:none">🏛️ TCMB Resmî Kur Sayfası</a><button class="secondary" onclick="openOpenBankingInfo()">🏦 Açık Bankacılık</button></div><div id="marketRates" class="grid" style="margin-top:12px"></div><div id="marketUpdated" class="muted" style="margin-top:8px"></div><h3 style="margin-top:16px">🥇 Altınkaynak Altın Fiyatları</h3><div class="actions"><button onclick="refreshGoldRates()">🔄 Altın Fiyatlarını Güncelle</button><a href="https://www.altinkaynak.com/canli-kurlar/altin" target="_blank" rel="noopener noreferrer">Altınkaynak Resmî Sayfa ↗</a></div><div id="goldRates" class="grid" style="margin-top:12px"></div><div id="goldUpdated" class="muted" style="margin-top:8px"></div></div></section>
 <section id="alarms" class="hide"><div class="card"><h2>🚨 Alarm Merkezi</h2><p class="muted">Bu işlevin tek yönetim ekranı burasıdır.</p></div><div class="card" id="smartAlerts" style="margin-top:16px"><h2>🚨 Akıllı Finans Alarm Merkezi</h2><p class="muted">Gelir-gider • Bütçe aşımı • Acil fon • Borç yükü • Ödeme tarihleri • Abonelikler. Her alarmın koşulu ve durumu aşağıda gösterilir.</p><div id="smartAlertList"></div></div></section>
-<section id="more" class="hide"><div class="card"><h2>🧰 Gelişmiş Araçlar</h2><p class="muted">Eski sürüm araçları burada toplandı; özellikler silinmedi.</p><div class="actions"><button class="secondary" onclick="tab('pro')">Pro Araçları</button><button class="secondary" onclick="tab('ai')">Otomatik Finans</button><button class="secondary" onclick="tab('finance25')">Finans 2.5</button><button class="secondary" onclick="tab('finance30')">Finans 3.0</button><button class="secondary" onclick="tab('autopilot')">Otopilot</button><button class="secondary" onclick="tab('assistant34')">Eski Asistan</button><button class="secondary" onclick="tab('assistant35')">Yerel Finans Asistanı</button><button class="secondary" onclick="tab('ai36')">Analiz Merkezi</button></div></div>
+<section id="more" class="hide"><div class="card"><h2>🧰 Gelişmiş Araçlar</h2><p class="muted">Eski sürüm araçları burada toplandı; özellikler silinmedi.</p><div class="actions"><button class="secondary" onclick="tab('pro')">Pro Araçları</button><button class="secondary" onclick="tab('ai')">Otomatik Finans</button><button class="secondary" onclick="tab('finance25')">Finans 2.5</button><button class="secondary" onclick="tab('finance30')">Finans 3.0</button><button class="secondary" onclick="tab('autopilot')">Otopilot</button><button class="secondary" onclick="tab('assistant34')">Eski Asistan</button><button class="secondary" onclick="tab('assistant35')">Yerel Finans Asistanı</button><button class="secondary" onclick="tab('assistant35')">Finans Asistanı ve Analiz</button></div></div>
 <div class="card" id="finpal50FinalCard">
   <h2>✅ FinPal 5.0 Final</h2>
   <p class="muted">Ana geliştirme tamamlandı. Bu merkez temel veri, güvenlik, yedekleme ve kritik modüllerin durumunu hızlıca kontrol eder.</p>
@@ -195,7 +221,7 @@ input,select,textarea{max-width:100%}
 </div>
 <div class="menu"><button onclick="quick('income')">＋ Gelir</button><button onclick="quick('expense')">－ Gider</button><button onclick="tab('budget',document.querySelector('.tabs button[onclick*=budget]'))">💰 Bütçe</button></div>
 <div id="modal" class="modal"><div class="sheet"><h2 id="modalTitle"></h2><div id="modalBody"></div><div class="actions"><button class="light" onclick="closeModal()">İptal</button><button onclick="submitModal()">Kaydet</button></div></div></div>
-<div class="card" id="bankingRoadmap" style="margin-top:16px;display:none"><h2>🏦 Açık Bankacılık Entegrasyon Merkezi</h2><p>Türkiye'de ÖHVPS 2.0 ile hesap, kart ve hareket verilerinin kapsamı genişletildi. FinPal burada banka şifresi istemez; gerçek bağlantı yetkili bir açık bankacılık sağlayıcısı üzerinden OAuth/izin akışıyla kurulmalıdır.</p><div class="muted">FinPal tarafı: veri alma → mükerrer kontrolü → otomatik kategori → bütçe → rapor. Banka tarafı: kullanıcı rızası → yetkilendirme → erişim belirteci → veri senkronizasyonu.</div></div>
+
 
 
 <section id="autopilot" class="hide">
@@ -216,63 +242,6 @@ input,select,textarea{max-width:100%}
 <div class="card"><h2>🔒 Yerel çalışma modu aktif</h2><p class="muted">API anahtarı, internet veya sunucu gerekmez. Sorular FinPal verileriyle bu cihazda hesaplanır. Bu özellik büyük dil modeli değil, kural tabanlı finans asistanıdır.</p></div>
 <div class="card"><h2>💬 Akıllı Finans Asistanı</h2><div id="chatLog35" class="chatLog"></div><div class="chatChips"><button class="chatChip" onclick="ask35('Bu ay finansal olarak en önemli 3 adımım ne?')">Bu ay ne yapmalıyım?</button><button class="chatChip" onclick="ask35('Borçlarımı kapatmak için en mantıklı plan ne?')">Borç planım ne?</button><button class="chatChip" onclick="ask35('Acil durum fonumu nasıl tamamlarım?')">Acil fon planı</button><button class="chatChip" onclick="ask35('Harcamalarımda nereden tasarruf edebilirim?')">Nereden tasarruf?</button></div><div class="chatComposer" style="margin-top:9px"><input id="chatInput35" placeholder="Finansal durumum hakkında istediğini sor..."><button onclick="send35()">Gönder</button></div><div id="ai35Reason" class="chatMeta" style="margin-top:8px">Yerel hesaplama; harici AI servisine veri gönderilmez.</div></div>
 <div class="grid"><div class="card"><h2>📦 Yerel finans özeti</h2><pre id="ai35Preview" style="white-space:pre-wrap;font-size:11px;background:#f7f7f7;padding:10px;border-radius:10px;overflow:auto"></pre></div><div class="card"><h2>🛡️ Gizlilik</h2><div class="chatGood">Bu asistan sorularını cihazında işler. Başka modüllerdeki harici bağlantılar ayrı değerlendirilmelidir.</div><div class="chatWarn" style="margin-top:8px">AI yanıtları finansal karar desteğidir; kesin yatırım/borç sonucu olarak kabul edilmemelidir.</div></div></div>
-</section>
-<section id="finance30" class="hide">
-<div class="finance30hero"><div class="muted" style="color:#fff;opacity:.8">FinPal 3.0</div><div style="font-size:25px;font-weight:900">Gerçek Finans Merkezi 🚀</div><div style="margin-top:5px;font-size:12px;opacity:.9">Banka + yatırım + market + tahmin + otomasyon için tek merkez.</div></div>
-<div class="card"><h2>📈 Portföy & Canlı Değerleme</h2><div id="portfolio30"></div><div class="actions" style="margin-top:10px"><button onclick="openInvestmentApi30()">⚙️ Fiyat API Ayarla</button><button class="secondary" onclick="refreshInvestment30()">🔄 Fiyatları Güncelle</button></div><div id="investment30Status" class="muted" style="margin-top:8px"></div></div>
-<div class="grid"><div class="card"><h2>🔮 Gelecek Bakiye</h2><p class="muted">Geçmiş ortalamalara göre basit projeksiyon.</p><div id="forecast30"></div></div><div class="card"><h2>🏦 Banka Otomasyonu</h2><div class="okBox">FinPal banka şifresini saklamaz. Gerçek hesap senkronizasyonu, kullanıcı rızasıyla yetkili açık bankacılık sağlayıcısına bırakılır.</div><div class="actions" style="margin-top:8px"><button onclick="openBank25()">Bağlantı Profili</button><button class="secondary" onclick="simulateBankSync()">Test Senkronizasyonu</button></div></div></div>
-<div class="card"><h2>🌐 Doğrulanmış Veri Kaynakları</h2><div id="market30Sources"></div><p class="muted">FinPal, dış kaynakların fiyatlarını otomatik olarak “kesin doğru” kabul etmez; veri zamanı ve kaynak gösterimi esastır.</p></div>
-<div class="card"><h2>🔔 Otomatik Finans Kontrolü</h2><div id="smartAlertList30"></div><div class="actions"><button onclick="runNotificationCheck25()">Kontrol Et</button><button class="secondary" onclick="enableNotifications25()">Bildirimleri Aç</button></div></div>
-</section>
-
-<div id="tab-ai36" class="tabContent" style="display:none">
-  <div class="card"><h2>🧠 FinPal 3.6 — AI Finans Merkezi</h2><p class="muted">AI, veri gizliliği, senaryo laboratuvarı ve finansal karar desteğini tek ekranda yönet.</p>
-    <div class="grid">
-      <div class="stat"><span>Finansal risk</span><b id="ai36Risk">—</b></div>
-      <div class="stat"><span>Güvenli harcama</span><b id="ai36Safe">—</b></div>
-      <div class="stat"><span>30 gün çıkış</span><b id="ai36Planned">—</b></div>
-      <div class="stat"><span>Tasarruf potansiyeli</span><b id="ai36Save">—</b></div>
-    </div>
-  </div>
-  <div class="card"><h3>🛡️ AI Veri Gizliliği</h3><p class="muted">Varsayılan olarak AI'ya yalnızca toplu finans özeti gönderilir. Ham işlem açıklamaları, hesap adları, IBAN, PIN ve banka giriş bilgileri gönderilmez.</p>
-    <label><input id="ai36Consent" type="checkbox" style="width:auto;margin-right:6px"> Harici AI sağlayıcısına toplu finans özetinin gönderilmesine izin veriyorum.</label>
-    <div class="actions"><button onclick="saveAI36Privacy()">Gizlilik tercihini kaydet</button><button class="light" onclick="showAI36Data()">Gönderilecek veriyi gör</button><button class="secondary" onclick="revokeAI36()">İzni kaldır</button></div>
-    <div id="ai36PrivacyStatus" class="muted" style="margin-top:8px"></div>
-  </div>
-  <div class="card"><h3>🔮 Senaryo Laboratuvarı</h3><div class="grid">
-    <div><label>Aylık ek harcama (TL)</label><input id="ai36ExtraExpense" type="number" min="0" value="0" oninput="runAI36Scenario()"></div>
-    <div><label>Aylık ek tasarruf (TL)</label><input id="ai36ExtraSave" type="number" min="0" value="0" oninput="runAI36Scenario()"></div>
-    <div><label>Senaryo süresi (ay)</label><input id="ai36Months" type="number" min="1" max="120" value="12" oninput="runAI36Scenario()"></div>
-  </div><div id="ai36Scenario" class="okBox" style="margin-top:10px"></div></div>
-  <div class="card"><h3>🎯 Karar Masası</h3><p class="muted">FinPal'ın mevcut verilerine göre öncelikleri açıklar; otomatik para transferi veya yatırım emri vermez.</p><div id="ai36Decisions"></div><div class="actions"><button onclick="runAI36()">🔄 Analizi Yenile</button><button class="light" onclick="sendAI36Question()">🗣️ AI Koçuna Sor</button></div></div>
-  <div class="card"><h3>📦 AI'ya gönderilecek toplu veri</h3><pre id="ai36Data" style="white-space:pre-wrap;max-height:260px;overflow:auto;background:#fff8f2;padding:10px;border-radius:12px;display:none"></pre></div>
-</div>
-
-<style id="fp40-style">
-.fp40-wrap{margin:14px 0}.fp40-card{background:linear-gradient(145deg,#fff7ed,#fff);border:1px solid #fed7aa;border-radius:20px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.05)}
-.fp40-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.fp40-title{font-size:18px;font-weight:850}.fp40-sub{font-size:12px;color:#64748b;margin-top:4px}.fp40-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.fp40-stat{padding:12px;border-radius:14px;background:#fff;border:1px solid #eee}.fp40-stat b{display:block;font-size:17px;margin-top:4px}.fp40-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.fp40-btn{border:0;border-radius:12px;padding:10px 13px;font-weight:750;cursor:pointer;background:#f97316;color:#fff}.fp40-btn.alt{background:#fff7ed;color:#9a3412;border:1px solid #fdba74}.fp40-input{width:100%;box-sizing:border-box;padding:10px 11px;border:1px solid #fed7aa;border-radius:12px;margin-top:7px;background:#fff}.fp40-log{margin-top:10px;font-size:12px;color:#64748b;line-height:1.55}.fp40-ok{color:#15803d;font-weight:750}.fp40-warn{color:#b45309;font-weight:750}@media(max-width:560px){.fp40-grid{grid-template-columns:1fr}.fp40-card{border-radius:16px;padding:13px}}
-</style>
-<div id="fp40-panel" class="fp40-wrap">
-  <div class="fp40-card">
-    <div class="fp40-head"><div><div class="fp40-title">🔐 Sistem ve Yedekleme Merkezi</div><div class="fp40-sub">Güvenli yedekleme, WebCrypto şifreleme, API bağlantı hazırlığı ve ürün sağlık kontrolü.</div></div><span id="fp40Secure" class="fp40-sub">Kontrol ediliyor…</span></div>
-    <div class="fp40-grid">
-      <div class="fp40-stat"><span class="fp40-sub">HTTPS / güvenli bağlam</span><b id="fp40Https">—</b></div>
-      <div class="fp40-stat"><span class="fp40-sub">WebCrypto</span><b id="fp40Crypto">—</b></div>
-      <div class="fp40-stat"><span class="fp40-sub">PWA / Service Worker</span><b id="fp40Pwa">—</b></div>
-      <div class="fp40-stat"><span class="fp40-sub">API endpoint</span><b id="fp40Api">Yapılandırılmadı</b></div>
-    </div>
-    <div style="margin-top:13px"><div class="fp40-sub">Güvenli AI/API proxy adresi (API anahtarı buraya yazılmaz)</div><input id="fp40Endpoint" class="fp40-input" placeholder="https://senin-domainin.com/api/finpal"></div>
-    <div class="fp40-actions">
-      <button class="fp40-btn" onclick="fp40SaveEndpoint()">🔗 Endpoint'i kaydet</button>
-      <button class="fp40-btn alt" onclick="fp40TestEndpoint()">🧪 Bağlantıyı test et</button>
-      <button class="fp40-btn alt" onclick="fp40EncryptedBackup()">🔐 Şifreli yedek</button>
-      <button class="fp40-btn alt" onclick="fp40RestoreEncrypted()">📥 Şifreli geri yükle</button>
-      <button class="fp40-btn alt" onclick="fp40Health()">🩺 Ürün kontrolü</button>
-    </div>
-    <input id="fp40RestoreFile" type="file" accept=".json" style="display:none" onchange="fp40ReadEncrypted(event)">
-    <div id="fp40Log" class="fp40-log">FinPal 4.0 hazır. API anahtarını hiçbir zaman HTML dosyasına koyma.</div>
-  </div>
-</div>
 <style id="fp42-style">
 .fp42-wrap{margin:14px 0}.fp42-card{background:linear-gradient(145deg,#fff7ed,#fff);border:1px solid #fed7aa;border-radius:20px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.05)}
 .fp42-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.fp42-stat{padding:12px;border-radius:14px;background:#fff;border:1px solid #e5e7eb}.fp42-stat b{display:block;font-size:18px;margin-top:4px}.fp42-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.fp42-btn{border:0;border-radius:12px;padding:10px 13px;font-weight:800;cursor:pointer;background:#f07818;color:#fff}.fp42-btn.alt{background:#fff7ed;color:#9a3412;border:1px solid #fdba74}.fp42-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 9px;border-radius:999px;background:#fff7ed;font-size:12px;font-weight:800}.fp42-dot{width:8px;height:8px;border-radius:50%;background:#94a3b8}.fp42-dot.ok{background:#16a34a}.fp42-dot.warn{background:#f59e0b}.fp42-log{margin-top:10px;font-size:12px;color:#64748b;line-height:1.5}.fp42-note{background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:11px;font-size:12px}.fp42-input{width:100%;margin:0}@media(max-width:560px){.fp42-grid{grid-template-columns:1fr}.fp42-card{border-radius:16px;padding:13px}}
@@ -296,7 +265,40 @@ input,select,textarea{max-width:100%}
     <div class="fp42-note">OpenAI anahtarı FinPal HTML'sine girilmez. Cloudflare Worker Secret olarak tutulur. Tarayıcı yalnızca HTTPS üzerinden Worker'a istek gönderir. AI isteğinde <b>store:false</b> kullanılır.</div>
     <div class="fp42-grid" style="margin-top:10px"><div class="fp42-stat"><span style="font-size:12px;color:#64748b">HTML → Worker</span><b>HTTPS + CORS</b></div><div class="fp42-stat"><span style="font-size:12px;color:#64748b">Worker → OpenAI</span><b>Secret Bearer</b></div></div>
   </div>
+<div id="tab-ai36" class="tabContent" style="display:none">
+  <div class="card"><h2>🧠 FinPal 3.6 — AI Finans Merkezi</h2><p class="muted">AI, veri gizliliği, senaryo laboratuvarı ve finansal karar desteğini tek ekranda yönet.</p>
+    <div class="grid">
+      <div class="stat"><span>Finansal risk</span><b id="ai36Risk">—</b></div>
+      <div class="stat"><span>Güvenli harcama</span><b id="ai36Safe">—</b></div>
+      <div class="stat"><span>30 gün çıkış</span><b id="ai36Planned">—</b></div>
+      <div class="stat"><span>Tasarruf potansiyeli</span><b id="ai36Save">—</b></div>
+    </div>
+  </div>
+  <div class="card"><h3>🛡️ AI Veri Gizliliği</h3><p class="muted">Varsayılan olarak AI'ya yalnızca toplu finans özeti gönderilir. Ham işlem açıklamaları, hesap adları, IBAN, PIN ve banka giriş bilgileri gönderilmez.</p>
+    <label><input id="ai36Consent" type="checkbox" style="width:auto;margin-right:6px"> Harici AI sağlayıcısına toplu finans özetinin gönderilmesine izin veriyorum.</label>
+    <div class="actions"><button onclick="saveAI36Privacy()">Gizlilik tercihini kaydet</button><button class="light" onclick="showAI36Data()">Gönderilecek veriyi gör</button><button class="secondary" onclick="revokeAI36()">İzni kaldır</button></div>
+    <div id="ai36PrivacyStatus" class="muted" style="margin-top:8px"></div>
+  </div>
+  <div class="card"><h3>🔮 Senaryo Laboratuvarı</h3><div class="grid">
+    <div><label>Aylık ek harcama (TL)</label><input id="ai36ExtraExpense" type="number" min="0" value="0" oninput="runAI36Scenario()"></div>
+    <div><label>Aylık ek tasarruf (TL)</label><input id="ai36ExtraSave" type="number" min="0" value="0" oninput="runAI36Scenario()"></div>
+    <div><label>Senaryo süresi (ay)</label><input id="ai36Months" type="number" min="1" max="120" value="12" oninput="runAI36Scenario()"></div>
+  </div><div id="ai36Scenario" class="okBox" style="margin-top:10px"></div></div>
+  <div class="card"><h3>🎯 Karar Masası</h3><p class="muted">FinPal'ın mevcut verilerine göre öncelikleri açıklar; otomatik para transferi veya yatırım emri vermez.</p><div id="ai36Decisions"></div><div class="actions"><button onclick="runAI36()">🔄 Analizi Yenile</button><button class="light" onclick="sendAI36Question()">🗣️ AI Koçuna Sor</button></div></div>
+  <div class="card"><h3>📦 AI'ya gönderilecek toplu veri</h3><pre id="ai36Data" style="white-space:pre-wrap;max-height:260px;overflow:auto;background:#fff8f2;padding:10px;border-radius:12px;display:none"></pre></div>
 </div>
+
+</div>
+</section>
+<section id="finance30" class="hide">
+<div class="finance30hero"><div class="muted" style="color:#fff;opacity:.8">FinPal 3.0</div><div style="font-size:25px;font-weight:900">Gerçek Finans Merkezi 🚀</div><div style="margin-top:5px;font-size:12px;opacity:.9">Banka + yatırım + market + tahmin + otomasyon için tek merkez.</div></div>
+<div class="card"><h2>📈 Portföy & Canlı Değerleme</h2><div id="portfolio30"></div><div class="actions" style="margin-top:10px"><button onclick="openInvestmentApi30()">⚙️ Fiyat API Ayarla</button><button class="secondary" onclick="refreshInvestment30()">🔄 Fiyatları Güncelle</button></div><div id="investment30Status" class="muted" style="margin-top:8px"></div></div>
+<div class="grid"><div class="card"><h2>🔮 Gelecek Bakiye</h2><p class="muted">Geçmiş ortalamalara göre basit projeksiyon.</p><div id="forecast30"></div></div><div class="card"><h2>🏦 Banka Otomasyonu</h2><div class="okBox">FinPal banka şifresini saklamaz. Gerçek hesap senkronizasyonu, kullanıcı rızasıyla yetkili açık bankacılık sağlayıcısına bırakılır.</div><div class="actions" style="margin-top:8px"><button onclick="openBank25()">Bağlantı Profili</button><button class="secondary" onclick="simulateBankSync()">Test Senkronizasyonu</button></div></div></div>
+<div class="card"><h2>🌐 Doğrulanmış Veri Kaynakları</h2><div id="market30Sources"></div><p class="muted">FinPal, dış kaynakların fiyatlarını otomatik olarak “kesin doğru” kabul etmez; veri zamanı ve kaynak gösterimi esastır.</p></div>
+<div class="card"><h2>🔔 Otomatik Finans Kontrolü</h2><div id="smartAlertList30"></div><div class="actions"><button onclick="runNotificationCheck25()">Kontrol Et</button><button class="secondary" onclick="enableNotifications25()">Bildirimleri Aç</button></div></div>
+</section>
+
+
 
 <script src="app.js"></script>
 </body>
