@@ -173,7 +173,7 @@ function syncEnvelopeTransferOptions(){
   if(info)info.textContent='Kaynak zarfta kullanılabilir: '+money(envelopeAvailable(f.value,val('erMonth')||budgetMonth));
 }
 
-const oldSubmit=submitModal;submitModal=function(){if(modalType==='transfer'){let f=val('trFrom'),t=val('trTo'),a=+val('trAmount');if(f===t||!(a>0))return alert('Transfer bilgilerini kontrol edin.');if(accountBalance(f)<a)return alert('Kaynak hesapta yeterli bakiye yok.');data.transactions.push({id:uid(),type:'transfer',amount:a,from:f,to:t,description:'Hesap Transferi',date:new Date().toISOString().slice(0,10)});save();closeModal();return}oldSubmit()}
+const oldSubmit=submitModal;submitModal=function(){if(modalType==='bankTxEdit')return saveBankTxEdit();if(modalType==='transfer'){let f=val('trFrom'),t=val('trTo'),a=+val('trAmount');if(f===t||!(a>0))return alert('Transfer bilgilerini kontrol edin.');if(accountBalance(f)<a)return alert('Kaynak hesapta yeterli bakiye yok.');data.transactions.push({id:uid(),type:'transfer',amount:a,from:f,to:t,description:'Hesap Transferi',date:new Date().toISOString().slice(0,10)});save();closeModal();return}oldSubmit()}
 function deleteTx(id){let t=data.transactions.find(x=>x.id===id);if(t&&confirm('İşlem silinsin mi?')){data.transactions=data.transactions.filter(x=>x.id!==id);save()}}
 
 function editExpenseTx(id){
@@ -641,7 +641,73 @@ function renderMonthlyExpenses(){
   }).join('');
 }
 
-function render(){let t=totals();document.getElementById('today').textContent=new Date().toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long'});document.getElementById('netWorth').textContent=money(t.net);document.getElementById('assets').textContent=money(t.assets);document.getElementById('liabilities').textContent=money(t.liab);document.getElementById('monthNet').textContent=money(t.mi-t.me);document.getElementById('mIncome').textContent=money(t.mi);document.getElementById('mExpense').textContent=money(t.me);let sr=t.mi>0?Math.round((t.mi-t.me)/t.mi*100):0;document.getElementById('saveRate').textContent=sr+'%';renderFinancialHealth();let recent=[...data.transactions].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);document.getElementById('recent').innerHTML=recent.length?recent.map(x=>`<div class="row"><div><b>${x.description||x.category||'İşlem'}</b><div class="muted">${fmt(x.date)}</div></div><b class="${x.type==='income'?'positive':'negative'}">${x.type==='income'?'+':'−'}${money(x.amount)}</b></div>`).join(''):'<div class="empty">Henüz işlem yok.</div>';let all=[...data.transactions].sort((a,b)=>b.date.localeCompare(a.date));document.getElementById('allTx').innerHTML=all.length?all.map(x=>`<div class="row"><div><b>${x.description||x.category||'İşlem'}</b><div class="muted">${fmt(x.date)} · ${x.categorySubcategory||x.category||''}</div></div><b class="${x.type==='income'?'positive':'negative'}">${x.type==='income'?'+':'−'}${money(x.amount)}</b></div>`).join(''):'<div class="empty">Henüz işlem yok.</div>';try{renderEnvelopes()}catch(e){console.error("FinPal renderEnvelopes render hatası",e)};try{renderAllocationSummary()}catch(e){console.error("FinPal renderAllocationSummary render hatası",e)};try{renderBudgets()}catch(e){console.error("FinPal renderBudgets render hatası",e)};try{renderExecutiveDashboard()}catch(e){console.error("FinPal renderExecutiveDashboard render hatası",e)};try{renderFinancialCenter()}catch(e){console.error("FinPal renderFinancialCenter render hatası",e)};try{renderCoach()}catch(e){console.error("FinPal renderCoach render hatası",e)};try{renderAI()}catch(e){console.error("FinPal renderAI render hatası",e)};try{renderEmergency()}catch(e){console.error("FinPal renderEmergency render hatası",e)};try{renderAssets()}catch(e){console.error("FinPal renderAssets render hatası",e)};try{renderAssets45()}catch(e){console.error("FinPal renderAssets45 render hatası",e)};try{renderDebts()}catch(e){console.error("FinPal renderDebts render hatası",e)};try{renderSecurity()}catch(e){console.error("FinPal renderSecurity render hatası",e)};try{renderReports()}catch(e){console.error("FinPal renderReports render hatası",e)};try{renderCashflow()}catch(e){console.error("FinPal renderCashflow render hatası",e)};try{renderForecast()}catch(e){console.error("FinPal renderForecast render hatası",e)};try{renderCategories()}catch(e){console.error("FinPal renderCategories render hatası",e)};try{renderObligations()}catch(e){console.error("FinPal renderObligations render hatası",e)};try{renderInstallmentCalendar()}catch(e){console.error("FinPal renderInstallmentCalendar render hatası",e)};try{renderPaymentPlan()}catch(e){console.error("FinPal renderPaymentPlan render hatası",e)};try{renderPlans()}catch(e){console.error("FinPal renderPlans render hatası",e)};try{renderMonthlyExpenses()}catch(e){console.error("FinPal renderMonthlyExpenses render hatası",e)};try{renderChart()}catch(e){console.error("FinPal renderChart render hatası",e)};try{renderAccounts()}catch(e){console.error("FinPal renderAccounts render hatası",e)};try{smartAlerts()}catch(e){console.error("FinPal smartAlerts render hatası",e)}}
+function bankTxAccountName(id){return data.accounts.find(a=>a.id===id)?.name||'Hesap bulunamadı'}
+function bankTxEscape(s){return esc(String(s??''))}
+function bankTxBankId(t){return t.type==='transfer'?(t.from||t.to):t.accountId}
+function renderBankTx(){
+ const select=document.getElementById('btBank'),rows=document.getElementById('btRows');if(!select||!rows)return;
+ const selected=select.value;select.innerHTML='<option value="all">Tüm bankalar ve hesaplar</option>'+data.accounts.map(a=>'<option value="'+bankTxEscape(a.id)+'">'+bankTxEscape(a.name)+'</option>').join('')+'<option value="unlinked">Hesapsız kayıtlar</option>';
+ if(Array.from(select.options).some(o=>o.value===selected))select.value=selected;
+ const bank=select.value,period=document.getElementById('btMonth')?.value||'',type=document.getElementById('btType')?.value||'all',q=(document.getElementById('btSearch')?.value||'').toLocaleLowerCase('tr-TR');
+ const filtered=[...data.transactions].filter(t=>{
+  const accounts=t.type==='transfer'?[t.from,t.to]:[t.accountId];
+  if(bank!=='all'&&(bank==='unlinked'?accounts.some(x=>!data.accounts.some(a=>a.id===x)):!accounts.includes(bank)))return false;
+  if(period&&String(t.date||'').slice(0,7)!==period)return false;
+  if(type!=='all'&&t.type!==type)return false;
+  return [t.description,t.category,t.categorySubcategory,...accounts.map(bankTxAccountName)].join(' ').toLocaleLowerCase('tr-TR').includes(q)
+ }).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+ const inc=filtered.filter(t=>t.type==='income').reduce((n,t)=>n+Number(t.amount||0),0),expense=filtered.filter(t=>t.type==='expense').reduce((n,t)=>n+Number(t.amount||0),0);
+ document.getElementById('btSummary').textContent=filtered.length+' kayıt · Gelir: '+money(inc)+' · Gider: '+money(expense)+' · Transferler toplam gelire/gidere dahil değildir.';
+ rows.innerHTML=filtered.length?filtered.slice(0,300).map(t=>{
+  const isTransfer=t.type==='transfer';const account=isTransfer?bankTxAccountName(t.from)+' → '+bankTxAccountName(t.to):bankTxAccountName(t.accountId);
+  const tag=t.installmentGroup?' · Taksit '+(t.installmentNo||'')+'/'+(t.installmentCount||''):'';
+  return '<div class="row" style="gap:12px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:190px"><b>'+bankTxEscape(t.description||t.category||'İşlem')+'</b><div class="muted">'+bankTxEscape(t.date||'Tarih yok')+' · '+bankTxEscape(account)+' · '+bankTxEscape(t.categorySubcategory||t.category||t.type)+bankTxEscape(tag)+'</div></div><b>'+money(t.amount)+'</b><button class="secondary" onclick="openBankTxEdit(\''+bankTxEscape(t.id)+'\')">✏️ Düzenle</button></div>'
+ }).join('')+(filtered.length>300?'<p class="muted">İlk 300 kayıt gösteriliyor. Filtreleri daraltın.</p>':''):'<div class="empty">Bu filtrelerde işlem bulunamadı.</div>';
+}
+function openBankTxEdit(id){
+ const t=data.transactions.find(x=>x.id===id);if(!t)return alert('İşlem bulunamadı.');
+ const opts=data.accounts.map(a=>'<option value="'+bankTxEscape(a.id)+'">'+bankTxEscape(a.name)+'</option>').join('');
+ const groupOpts=Object.keys(CATS).map(g=>'<option value="'+bankTxEscape(g)+'">'+bankTxEscape(g)+'</option>').join('');
+ const currentGroup=t.categoryGroup||Object.keys(CATS).find(g=>CATS[g].includes(t.categorySubcategory||t.category))||Object.keys(CATS)[0];
+ const isTransfer=t.type==='transfer';
+ const body='<input id="beId" type="hidden" value="'+bankTxEscape(t.id)+'"><p class="muted">'+(t.installmentGroup?'⚠️ Bu kayıt bir taksit grubuna bağlı. Tutar, hesap ve tarih değişiklikleri taksit takvimini bozabileceğinden burada kilitlidir. Taksit yönetiminden düzenleyin.':'Değişiklikler hesap bakiyelerine ve raporlara yansır.')+'</p>'+
+ '<label>İşlem türü</label><input value="'+(isTransfer?'Hesap transferi':t.type==='income'?'Gelir':'Gider')+'" disabled><label>Tutar (₺)</label><input id="beAmount" type="number" min="0.01" step="0.01" value="'+Number(t.amount||0)+'" '+(t.installmentGroup?'disabled':'')+'><label>Açıklama</label><input id="beDesc" value="'+bankTxEscape(t.description||'')+'"><label>Tarih</label><input id="beDate" type="date" value="'+bankTxEscape(t.date||'')+'" '+(t.installmentGroup?'disabled':'')+'>'+
+ (isTransfer?'<label>Kaynak hesap</label><select id="beFrom">'+opts+'</select><label>Hedef hesap</label><select id="beTo">'+opts+'</select>':'<label>Hesap / Kart</label><select id="beAccount" '+(t.installmentGroup?'disabled':'')+'>'+opts+'</select><label>Kategori</label><select id="beGroup" onchange="updateSubcats(\'beGroup\',\'beCat\')">'+groupOpts+'</select><label>Alt kategori</label><select id="beCat"></select>')+
+ '<div class="actions"><button class="light" type="button" onclick="deleteBankTxFromModal()">🗑️ İşlemi sil</button></div>';
+ openModal('İşlemi Düzenle','bankTxEdit',body);
+ if(isTransfer){document.getElementById('beFrom').value=t.from||'';document.getElementById('beTo').value=t.to||''}
+ else{document.getElementById('beAccount').value=t.accountId||'';document.getElementById('beGroup').value=currentGroup;updateSubcats('beGroup','beCat');document.getElementById('beCat').value=t.categorySubcategory||t.category||''}
+}
+function saveBankTxEdit(){
+ const t=data.transactions.find(x=>x.id===val('beId'));if(!t)return alert('İşlem bulunamadı.');
+ const desc=val('beDesc').trim();if(!desc)return alert('Açıklama gerekli.');
+ const next={...t,description:desc};
+ if(!t.installmentGroup){
+  const amount=Number(val('beAmount')),date=val('beDate');
+  if(!Number.isFinite(amount)||amount<=0||!/^\d{4}-\d{2}-\d{2}$/.test(date))return alert('Geçerli tutar ve tarih girin.');
+  next.amount=amount;next.date=date;
+  if(t.type==='transfer'){
+   next.from=val('beFrom');next.to=val('beTo');if(!next.from||!next.to||next.from===next.to)return alert('İki farklı hesap seçin.');
+   if(!data.accounts.some(a=>a.id===next.from)||!data.accounts.some(a=>a.id===next.to))return alert('Hesap bulunamadı.');
+  }else{
+   next.accountId=val('beAccount');if(!data.accounts.some(a=>a.id===next.accountId))return alert('Geçerli hesap seçin.');
+   if(t.type==='expense'){
+    next.categoryGroup=val('beGroup');next.categorySubcategory=val('beCat');next.category=next.categorySubcategory;
+    const acc=data.accounts.find(a=>a.id===next.accountId);
+    if(acc?.type==='credit'&&Number(acc.cardLimit||0)>0){const own=t.accountId===next.accountId?Number(t.amount||0):0;if(amount>creditAvailable(next.accountId)+own)return alert('Kredi kartı limitini aşıyorsunuz.');}
+   }
+  }
+ }
+ const index=data.transactions.findIndex(x=>x.id===t.id);data.transactions[index]=next;
+ try{save();closeModal();alert('İşlem güncellendi.')}catch(e){data.transactions[index]=t;console.error(e);alert('İşlem kaydedilemedi. Değişiklik geri alındı.');}
+}
+function deleteBankTxFromModal(){
+ const t=data.transactions.find(x=>x.id===val('beId'));if(!t)return;
+ if(t.installmentGroup)return alert('Taksitli işlemleri taksit yönetiminden grup olarak silin.');
+ if(!confirm('Bu işlem kalıcı olarak silinsin mi? Önce veri yedeği almanız önerilir.'))return;
+ data.transactions=data.transactions.filter(x=>x.id!==t.id);save();closeModal();alert('İşlem silindi.');
+}
+function render(){let t=totals();document.getElementById('today').textContent=new Date().toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long'});document.getElementById('netWorth').textContent=money(t.net);document.getElementById('assets').textContent=money(t.assets);document.getElementById('liabilities').textContent=money(t.liab);document.getElementById('monthNet').textContent=money(t.mi-t.me);document.getElementById('mIncome').textContent=money(t.mi);document.getElementById('mExpense').textContent=money(t.me);let sr=t.mi>0?Math.round((t.mi-t.me)/t.mi*100):0;document.getElementById('saveRate').textContent=sr+'%';renderFinancialHealth();let recent=[...data.transactions].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);document.getElementById('recent').innerHTML=recent.length?recent.map(x=>`<div class="row"><div><b>${x.description||x.category||'İşlem'}</b><div class="muted">${fmt(x.date)}</div></div><b class="${x.type==='income'?'positive':'negative'}">${x.type==='income'?'+':'−'}${money(x.amount)}</b></div>`).join(''):'<div class="empty">Henüz işlem yok.</div>';let all=[...data.transactions].sort((a,b)=>b.date.localeCompare(a.date));document.getElementById('allTx').innerHTML=all.length?all.map(x=>`<div class="row"><div><b>${x.description||x.category||'İşlem'}</b><div class="muted">${fmt(x.date)} · ${x.categorySubcategory||x.category||''}</div></div><b class="${x.type==='income'?'positive':'negative'}">${x.type==='income'?'+':'−'}${money(x.amount)}</b></div>`).join(''):'<div class="empty">Henüz işlem yok.</div>';try{renderBankTx()}catch(e){console.error("Banka bazlı işlem yönetimi:",e)};try{renderEnvelopes()}catch(e){console.error("FinPal renderEnvelopes render hatası",e)};try{renderAllocationSummary()}catch(e){console.error("FinPal renderAllocationSummary render hatası",e)};try{renderBudgets()}catch(e){console.error("FinPal renderBudgets render hatası",e)};try{renderExecutiveDashboard()}catch(e){console.error("FinPal renderExecutiveDashboard render hatası",e)};try{renderFinancialCenter()}catch(e){console.error("FinPal renderFinancialCenter render hatası",e)};try{renderCoach()}catch(e){console.error("FinPal renderCoach render hatası",e)};try{renderAI()}catch(e){console.error("FinPal renderAI render hatası",e)};try{renderEmergency()}catch(e){console.error("FinPal renderEmergency render hatası",e)};try{renderAssets()}catch(e){console.error("FinPal renderAssets render hatası",e)};try{renderAssets45()}catch(e){console.error("FinPal renderAssets45 render hatası",e)};try{renderDebts()}catch(e){console.error("FinPal renderDebts render hatası",e)};try{renderSecurity()}catch(e){console.error("FinPal renderSecurity render hatası",e)};try{renderReports()}catch(e){console.error("FinPal renderReports render hatası",e)};try{renderCashflow()}catch(e){console.error("FinPal renderCashflow render hatası",e)};try{renderForecast()}catch(e){console.error("FinPal renderForecast render hatası",e)};try{renderCategories()}catch(e){console.error("FinPal renderCategories render hatası",e)};try{renderObligations()}catch(e){console.error("FinPal renderObligations render hatası",e)};try{renderInstallmentCalendar()}catch(e){console.error("FinPal renderInstallmentCalendar render hatası",e)};try{renderPaymentPlan()}catch(e){console.error("FinPal renderPaymentPlan render hatası",e)};try{renderPlans()}catch(e){console.error("FinPal renderPlans render hatası",e)};try{renderMonthlyExpenses()}catch(e){console.error("FinPal renderMonthlyExpenses render hatası",e)};try{renderChart()}catch(e){console.error("FinPal renderChart render hatası",e)};try{renderAccounts()}catch(e){console.error("FinPal renderAccounts render hatası",e)};try{smartAlerts()}catch(e){console.error("FinPal smartAlerts render hatası",e)}}
 function backup(){let blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='finpal-2.0-final-yedek-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(a.href)}
 function restore(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(!x||!x.accounts||!x.transactions)throw 0;if(confirm('Mevcut veriler yedek ile değiştirilsin mi?')){data=migrate(x);save();alert('Yedek başarıyla yüklendi.')}}catch(err){alert('Geçersiz FinPal yedeği.')}};r.readAsText(f)}
 function resetData(){if(confirm('TÜM FinPal verileri silinecek. Emin misiniz?')){localStorage.removeItem(KEY);data=base();render()}}
