@@ -57,12 +57,8 @@ function installmentGroupsForCard(id){
     if(g.paidExplicit!==null&&Number.isFinite(g.paidExplicit)){
       g.paid=Math.max(0,Math.min(g.count,Math.floor(g.paidExplicit)));
     }else{
-      // Otomatik mod: yalnızca KAPANMIŞ ekstre dönemleri ödenmiş kabul edilir.
-      // İçinde bulunduğumuz/henüz kesilmemiş ekstre ile sonraki ekstre borçta kalır.
-      g.paid=g.rows.filter(t=>{
-        const cut=installmentStatementDate(t,acc);
-        return cut&&cut<now;
-      }).length;
+      // Ekstre kesilmesi ödeme kanıtı değildir. Açık kayıt yoksa ödenmiş sayma.
+      g.paid=0;
     }
     g.remainingRows=g.rows.filter(t=>Number(t.installmentNo||0)>g.paid);
     g.remaining=g.remainingRows.reduce((a,t)=>a+Number(t.amount||0),0);
@@ -72,48 +68,64 @@ function installmentGroupsForCard(id){
 function setInstallmentPaidCount(groupId,count){const rows=data.transactions.filter(t=>t.installmentGroup===groupId);if(!rows.length)return;const max=Math.max(...rows.map(t=>Number(t.installmentCount||t.installmentNo||0)),0);count=Math.max(0,Math.min(max,Math.floor(Number(count)||0)));rows.forEach(t=>t.installmentPaidCount=count);save()}
 function changeInstallmentPaidCount(groupId){const rows=data.transactions.filter(t=>t.installmentGroup===groupId);if(!rows.length)return;const max=Math.max(...rows.map(t=>Number(t.installmentCount||t.installmentNo||0)),0);const grp=installmentGroupsForCard(rows[0].accountId).find(g=>g.groupId===groupId);const cur=rows[0].installmentPaidCount!==undefined?Number(rows[0].installmentPaidCount):Number(grp?.paid||0);const v=prompt('Kaç taksit ödendi? (0-'+max+')',String(Math.min(max,cur)));if(v===null)return;const n=Number(v);if(!Number.isInteger(n)||n<0||n>max)return alert('0 ile '+max+' arasında tam sayı girin.');setInstallmentPaidCount(groupId,n)}
 function deleteInstallmentGroup(groupId){if(!confirm('Bu taksitli alışverişin tüm taksitleri silinsin mi?'))return;data.transactions=data.transactions.filter(t=>t.installmentGroup!==groupId);save()}
-function cardDebt(id){let today=new Date();today.setHours(23,59,59,999);let expenses=data.transactions.filter(t=>t.accountId===id&&t.type==='expense'&&!t.installmentGroup&&new Date((t.date||'9999-12-31')+'T23:59:59')<=today).reduce((s,t)=>s+Number(t.amount||0),0);let payments=data.transactions.filter(t=>t.type==='transfer'&&t.to===id&&new Date((t.date||'9999-12-31')+'T23:59:59')<=today).reduce((s,t)=>s+Number(t.amount||0),0);return Math.max(0,expenses-payments)}
-function cardFutureInstallments(id){return installmentGroupsForCard(id).reduce((s,g)=>s+g.remaining,0)} function cardMonthlyInstallmentDue(id,baseDate=new Date()){
+// Kayıtlı borç tahmini. Banka ekstresi değildir. Gerçekleşmiş kart ödemeleri
+// ile elle işaretlenen ödenmiş taksitler aynı ödemeyi temsil edebilir.
+function cardDebtBreakdown(id,baseDate=new Date()){
+ const cutoff=new Date(baseDate);cutoff.setHours(23,59,59,999);
+ const ym=month(cutoff),txs=data.transactions||[];
+ const valid=t=>t.date&&Number.isFinite(new Date(t.date+'T23:59:59').getTime())&&new Date(t.date+'T23:59:59')<=cutoff;
+ const oneShot=txs.filter(t=>t.accountId===id&&t.type==='expense'&&!t.installmentGroup&&valid(t)).reduce((s,t)=>s+Number(t.amount||0),0);
+ const payments=txs.filter(t=>t.type==='transfer'&&t.to===id&&valid(t)).reduce((s,t)=>s+Number(t.amount||0),0);
+ const acc=data.accounts.find(a=>a.id===id);
+ let due=0,future=0,unknown=0,unplaced=0,monthly=0,paidMarked=0;
+ installmentGroupsForCard(id).forEach(g=>{
+  if(g.paidExplicit===null)unknown++;
+  else g.rows.filter(t=>Number(t.installmentNo||0)<=g.paid).forEach(t=>{paidMarked+=Number(t.amount||0)});
+  (g.remainingRows||[]).forEach(t=>{
+   const amount=Number(t.amount||0),d=installmentPaymentDate(t,acc);
+   if(!d||!Number.isFinite(d.getTime())){unplaced++;future+=amount;return}
+   if(month(d)<=ym)due+=amount;else future+=amount;
+   if(month(d)===ym)monthly+=amount;
+  });
+ });
+ // Elle ödenmiş sayılan taksitler zaten kalan taksitlerden çıkarılmıştır.
+ // Aynı ödemenin transferi varsa tekrar düşmemesi için örtüşen kısmı mahsup et.
+ // Bu bir uzlaştırma tahminidir; ödemelerin hangi alışverişe ait olduğu bilinmiyor.
+ const overlap=Math.min(payments,paidMarked);
+ const netPayments=Math.max(0,payments-overlap);
+ const current=Math.max(0,oneShot+due-netPayments);
+ const total=Math.max(0,oneShot+due+future-netPayments);
+ return {oneShot,payments,paidMarked,overlap,netPayments,due,future,monthly,unknown,unplaced,
+  reconciliationNeeded:payments>0&&paidMarked>0,current,total};
+}
+function cardDebt(id){return cardDebtBreakdown(id).current}
+function cardFutureInstallments(id){return cardDebtBreakdown(id).future}
+ function cardMonthlyInstallmentDue(id,baseDate=new Date()){
   const groups=installmentGroupsForCard(id);
   return groups.reduce((sum,g)=>{
-    const first=(g.remainingRows||[])[0];
-    return sum+Number(first?.amount||0);
+    const acc=data.accounts.find(a=>a.id===id);
+    return sum+(g.remainingRows||[]).filter(t=>{const d=installmentPaymentDate(t,acc);return d&&month(d)===month(baseDate)}).reduce((n,t)=>n+Number(t.amount||0),0);
   },0);
 } function monthlyCardDebtTotal(baseDate=new Date()){
   return (data.accounts||[]).filter(a=>a.type==='credit').reduce((s,a)=>s+cardMonthlyInstallmentDue(a.id,baseDate),0)
 }
-function cardInstallmentCommitment(id){return cardDebt(id)+cardFutureInstallments(id)}
+function cardInstallmentCommitment(id){return cardDebtBreakdown(id).total}
 function renderBankDebtDashboard(){
  const el=document.getElementById('bankDebtDashboard');if(!el)return;
  const cards=(data.accounts||[]).filter(a=>a.type==='credit');
  if(!cards.length){el.innerHTML='<div class="empty">Henüz kredi kartı hesabı eklenmedi.</div>';return}
  const now=new Date(),ym=month(now);
  const rows=cards.map(a=>{
-   const groups=installmentGroupsForCard(a.id);
-   const nonInstallment=cardDebt(a.id);
-   let monthly=0,remaining=0,overdue=0,unknown=0,unplaced=0;
-   groups.forEach(g=>{
-     remaining+=Number(g.remaining||0);
-     if(g.paidExplicit===null)unknown++;
-     (g.remainingRows||[]).forEach(t=>{
-       const d=installmentPaymentDate(t,a),amount=Number(t.amount||0);
-       if(!d||!Number.isFinite(d.getTime())){unplaced++;return}
-       if(month(d)===ym)monthly+=amount;
-       if(month(d)<=ym)overdue+=amount;
-     });
-   });
-   // Vadesi gelmiş taksitler güncel borca dahildir; kalan taksit toplamına tekrar eklenmez.
-   const current=nonInstallment+overdue;
-   const total=nonInstallment+remaining;
-   return {a,current,monthly,remaining,total,unknown,unplaced};
+   const b=cardDebtBreakdown(a.id);
+   return {a,current:b.current,monthly:b.monthly,remaining:b.future,total:b.total,unknown:b.unknown,unplaced:b.unplaced,reconciliationNeeded:b.reconciliationNeeded};
  });
  const totals=rows.reduce((r,x)=>({current:r.current+x.current,monthly:r.monthly+x.monthly,total:r.total+x.total}),{current:0,monthly:0,total:0});
  const label=now.toLocaleDateString('tr-TR',{month:'long',year:'numeric'});
  const select='<div style="margin-top:14px"><label for="bdCard">Kart seç</label><select id="bdCard" onchange="renderBankDebtDetails()"><option value="all">Tüm Kartlar</option>'+cards.map(a=>'<option value="'+esc(String(a.id))+'">'+esc(a.name||'Kredi kartı')+'</option>').join('')+'</select></div>';
  const oldSelection=document.getElementById('bdCard')?.value||'all';
- el.innerHTML='<div class="cardMini"><span>Güncel borç (vadesi gelenler)<br><b>'+money(totals.current)+'</b></span><span>'+esc(label)+' taksitleri<br><b>'+money(totals.monthly)+'</b></span><span>Toplam kayıtlı borç<br><b>'+money(totals.total)+'</b></span></div>'+
- rows.map(x=>'<div class="accountBox"><div class="row"><div><b>'+esc(x.a.name||'Kredi kartı')+'</b><div class="muted">'+esc(label)+' ödeme dönemi</div></div><b>'+money(x.total)+'</b></div><div class="cardMini"><span>Güncel borç<br><b>'+money(x.current)+'</b></span><span>Aylık taksit<br><b>'+money(x.monthly)+'</b></span><span>Kalan taksitler<br><b>'+money(x.remaining)+'</b></span></div>'+(x.unknown?'<div class="muted">⚠ '+x.unknown+' taksit grubunda ödenen taksit sayısı girilmemiş; borç tahmini olabilir.</div>':'')+(x.unplaced?'<div class="muted">⚠ '+x.unplaced+' taksitin ödeme tarihi hesaplanamadı.</div>':'')+'</div>').join('')+
- '<p class="muted">Güncel borç: kaydedilmiş tek çekim net borcu ve ödeme ayı gelmiş kalan taksitler. Toplam borç: tek çekim net borcu ve tüm kalan taksitler. Bu tutarlar banka ekstresi değildir; ödenmiş taksit sayısını kontrol et.</p>'+select+
+ el.innerHTML='<div class="cardMini"><span>Güncel borç (tek çekim + taksit)<br><b>'+money(totals.current)+'</b></span><span>'+esc(label)+' taksitleri<br><b>'+money(totals.monthly)+'</b></span><span>Toplam kayıtlı borç<br><b>'+money(totals.total)+'</b></span></div>'+
+ rows.map(x=>'<div class="accountBox"><div class="row"><div><b>'+esc(x.a.name||'Kredi kartı')+'</b><div class="muted">'+esc(label)+' ödeme dönemi</div></div><b>'+money(x.total)+'</b></div><div class="cardMini"><span>Güncel borç<br><b>'+money(x.current)+'</b></span><span>Aylık taksit<br><b>'+money(x.monthly)+'</b></span><span>Gelecek taksitler<br><b>'+money(x.remaining)+'</b></span></div>'+(x.unknown?'<div class="muted">⚠ '+x.unknown+' taksit grubunda ödenen taksit sayısı girilmemiş; borç tahmini olabilir.</div>':'')+(x.unplaced?'<div class="muted">⚠ '+x.unplaced+' taksitin ödeme tarihi hesaplanamadı.</div>':'')+(x.reconciliationNeeded?'<div class="muted">⚠ Kart ödemesi ve ödenmiş taksit kaydı birlikte var. Çift düşüm önlendi; gerçek ekstreyle uzlaştırma gerekli.</div>':'')+'</div>').join('')+
+ '<p class="muted">Güncel borç: tek çekim harcamalar + ödeme ayı gelmiş ödenmemiş taksitler − kayıtlı kart ödemeleri. Toplam borç: tek çekim harcamalar + kalan tüm taksitler − kayıtlı kart ödemeleri. Bu tutarlar banka ekstresi değildir; ödenmiş taksit sayısını kontrol et.</p>'+select+
  '<div id="bdMonthlyDetails"></div>'+renderDashboardMonthlyInstallments(cards,now);
  const sel=document.getElementById('bdCard');if(sel&&oldSelection!=='all'&&cards.some(a=>String(a.id)===oldSelection))sel.value=oldSelection;
  renderBankDebtDetails();
@@ -386,7 +398,7 @@ function renderCardMonthlyCenter(){
  monthly.innerHTML+='<p class="muted">Harcama: alışverişin toplam tutarı, alışverişin yapıldığı ayda tek kez gösterilir. Taksit: yalnızca kalan ödemelerin son ödeme ayı. Kart ödemeleri harcama kategorisine eklenmez.</p>';
 }
 function openCardMonthlyCenter(cardId){tab('transactions');const sel=document.getElementById('cmCard');if(sel){renderCardMonthlyCenter();sel.value=String(cardId);renderCardMonthlyCenter()}document.getElementById('cardMonthlyCenter')?.scrollIntoView({behavior:'smooth',block:'start'})}
-function renderAccounts(){let el=document.getElementById('accounts');if(!el)return;el.innerHTML=data.accounts.length?data.accounts.map(a=>{let b=accountBalance(a.id),isCard=a.type==='credit',ci=isCard?cardInfo(a.id):null,ist=isCard?installmentStatusForCard(a.id):null;return `<div class="accountBox"><div class="row"><div><b>${a.name}</b><div class="muted">${a.type==='bank'?'Banka':a.type==='cash'?'Nakit':a.type==='credit'?'Kredi Kartı':a.type==='investment'?'Yatırım':'Borç'}</div></div><b>${money(isCard?(ci?.debt||0):b)}</b></div>${isCard?`<div class="muted">Limit ${money(a.cardLimit)} · Kullanılabilir ${money(ci?.available||0)} · Güncel borç ${money(ci?.debt||0)} · Kalan taksit ${money(ci?.futureInstallments||0)} · Taksit dahil toplam ${money(ci?.installmentCommitment||0)}${ist?.groups?` · Taksit durumu ${ist.paid} ödendi / ${ist.left} kaldı`:''} · Ekstre ${money(ci?.statement||0)} · Son ödeme ${ci?.due?fmt(ci.due):'—'}</div>`:''}<div class="account-actions" style="margin-top:7px">${isCard?`<button class="small" onclick="openTx('expense','${a.id}')">+ Harcama</button><button class="small" onclick="openCardPayment('${a.id}')">Kart Öde</button><button class="small" onclick="openCardMonthlyCenter('${a.id}')">Aylık Özet</button>`:''}<button class="small danger" onclick="deleteAccount('${a.id}')">Sil</button></div></div>`}).join(''):'<div class="empty">Henüz hesap eklenmedi.</div>'}
+function renderAccounts(){let el=document.getElementById('accounts');if(!el)return;el.innerHTML=data.accounts.length?data.accounts.map(a=>{let b=accountBalance(a.id),isCard=a.type==='credit',ci=isCard?cardInfo(a.id):null,ist=isCard?installmentStatusForCard(a.id):null;return `<div class="accountBox"><div class="row"><div><b>${a.name}</b><div class="muted">${a.type==='bank'?'Banka':a.type==='cash'?'Nakit':a.type==='credit'?'Kredi Kartı':a.type==='investment'?'Yatırım':'Borç'}</div></div><b>${money(isCard?(ci?.debt||0):b)}</b></div>${isCard?`<div class="muted">Limit ${money(a.cardLimit)} · Kullanılabilir ${money(ci?.available||0)} · Güncel borç (tek çekim + vadesi gelen taksit) ${money(ci?.debt||0)} · Gelecek taksit ${money(ci?.futureInstallments||0)} · Toplam kalan borç ${money(ci?.installmentCommitment||0)}${ist?.groups?` · Taksit durumu ${ist.paid} ödendi / ${ist.left} kaldı`:''} · Ekstre ${money(ci?.statement||0)} · Son ödeme ${ci?.due?fmt(ci.due):'—'}</div>`:''}<div class="account-actions" style="margin-top:7px">${isCard?`<button class="small" onclick="openTx('expense','${a.id}')">+ Harcama</button><button class="small" onclick="openCardPayment('${a.id}')">Kart Öde</button><button class="small" onclick="openCardMonthlyCenter('${a.id}')">Aylık Özet</button>`:''}<button class="small danger" onclick="deleteAccount('${a.id}')">Sil</button></div></div>`}).join(''):'<div class="empty">Henüz hesap eklenmedi.</div>'}
 function openCardPayment(id){let card=data.accounts.find(a=>a.id===id);let opts=data.accounts.filter(a=>a.id!==id&&a.type!=='credit').map(a=>`<option value="${a.id}">${a.name}</option>`).join('');if(!card||!opts)return alert('Kart ödemesi için banka veya nakit hesabı ekleyin.');openModal('Kredi Kartı Ödeme','cardPayment',`<label>Ödeme yapılacak hesap</label><select id="cpFrom">${opts}</select><label>Tutar</label><input id="cpAmount" type="number" step="0.01" max="${cardDebt(id)}" placeholder="${cardDebt(id).toFixed(2)}"><label>Tarih</label><input id="cpDate" type="date" value="${new Date().toISOString().slice(0,10)}"><div class="muted">Mevcut kart borcu: <b>${money(cardDebt(id))}</b></div>`);modalTypeCardId=id}
 
 function monthTotals(m){let inc=data.transactions.filter(t=>t.type==='income'&&t.date.slice(0,7)===m).reduce((s,t)=>s+Number(t.amount||0),0);let exp=data.transactions.filter(t=>t.type==='expense'&&t.date.slice(0,7)===m).reduce((s,t)=>s+Number(t.amount||0),0);return{inc,exp,net:inc-exp}}
