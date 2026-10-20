@@ -53,6 +53,29 @@
 
 /* Aylık Harcamalar */
 .monthlyExpenseKpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}.monthlyExpenseKpi{background:#f7f8f8;border-radius:12px;padding:11px}.monthlyExpenseKpi small{display:block;color:#777}.monthlyExpenseKpi b{display:block;margin-top:4px;font-size:16px}.expenseGroup{border:1px solid #eee;border-radius:14px;margin:9px 0;overflow:hidden}.expenseGroupHead{width:100%;display:flex;justify-content:space-between;align-items:center;text-align:left;background:#fff;color:#17231e;border-radius:0;padding:13px}.expenseGroupHead:hover{background:#fafafa}.expenseGroupBody{padding:0 13px 8px}.expenseTx{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid #eee}.expenseTx:first-child{border-top:0}.expenseTxAmount{text-align:right;font-weight:800}.expenseTxActions{margin-top:4px}.expenseTxActions button{padding:5px 8px;font-size:10px}.expenseGroup.emptyGroup{opacity:.65}@media(max-width:650px){.monthlyExpenseKpis{grid-template-columns:1fr 1fr}.monthlyExpenseKpis .monthlyExpenseKpi:first-child{grid-column:1/-1}#monthlyExpenseMonth{width:100%!important;margin-top:8px!important}.card>.row:has(#monthlyExpenseMonth){display:block}}
+
+/* FinPal 5.8.5 — sade bankacılık özeti */
+#fpBanks{padding:16px 16px 12px}
+#fpBanks h2{font-size:18px;margin-bottom:12px}
+.fpBankTotal{border-radius:16px;background:#18342b;color:#fff;padding:18px;margin-bottom:8px;display:flex;flex-direction:column;gap:5px}
+.fpBankTotal span{font-size:12px;opacity:.82}
+.fpBankTotal strong{font-size:27px;letter-spacing:-.6px;font-variant-numeric:tabular-nums}
+.fpBankTotal small{font-size:11px;opacity:.72}
+.fpBankRow{border-bottom:1px solid #edf0ef}
+.fpBankSummary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:16px 0}
+.fpBankSummary::-webkit-details-marker{display:none}
+.fpBankIcon{display:grid;place-items:center;background:#eef4f1;width:38px;height:38px;border-radius:12px;flex:none;font-size:19px}
+.fpBankInfo{flex:1;min-width:0}.fpBankInfo b{display:block;font-size:14px;color:#142a21;margin-bottom:5px}.fpBankInfo small{font-size:11px;line-height:1.4;display:block;color:#747f79}
+.fpBankAmount{white-space:nowrap;font-size:15px;font-weight:800;font-variant-numeric:tabular-nums}
+.fpBankAmount i{font-style:normal;font-size:20px;color:#89958d;margin-left:7px}
+.fpBankExpanded{margin:0 0 12px 48px;padding:10px 12px;border-radius:12px;background:#f7f9f8}
+.fpBankLine{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;font-size:12px;border-bottom:1px solid #e9edeb}
+.fpBankLine:last-of-type{border:0}.fpBankLine b{white-space:nowrap;font-variant-numeric:tabular-nums}
+.fpBankLineTotal{font-weight:800;font-size:13px}.fpBankMeta{font-size:11px;color:#718078;margin-top:9px}
+.fpBankNote{font-size:11px;color:#85510c;background:#fff6e7;padding:9px;border-radius:8px;margin-top:8px}
+.fpBankPlan{margin-top:6px;border-top:1px solid #e9eeeb}.fpBankPlan>summary{cursor:pointer;list-style:none;font-size:13px;font-weight:750;color:#234237;display:flex;justify-content:space-between;padding:15px 0}
+.fpBankPlan>summary::-webkit-details-marker{display:none}.fpBankPlanBody{padding:2px 0 10px}.fpBankPlanBody h3{font-size:14px}
+@media(max-width:450px){.fpBankInfo small{font-size:10px}.fpBankAmount{font-size:13px}.fpBankTotal strong{font-size:24px}.fpBankIcon{width:34px;height:34px}.fpBankExpanded{margin-left:0}}
 </style>
 <style id="fp49-stability">
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
@@ -84,7 +107,7 @@ input,select,textarea{max-width:100%}
 <div class="execCard"><h3>📈 Yatırım Özeti</h3><div id="execInvestments"></div></div>
 </div><div class="execCard"><h3>🧠 Bugün Ne Yapmalısın?</h3><div id="execNextAction"></div></div>
 </div>
-<div class="card"><h2>💳 Banka Banka Güncel Borç</h2><p class="muted">Her kartın hesap kesim dönemine göre önceki ödenmemiş ekstre, yeni dönem tahmini borcu ve ileriki taksitler ayrı gösterilir. Kart ödemeleri yalnızca bir kez düşülür.</p><div id="bankDebtDashboard"></div></div>
+<div class="card" id="fpBanks"><h2>💳 Kredi Kartlarım</h2><div id="bankDebtDashboard"></div></div>
 <div class="card"><h2>🎯 Finansal Özet Merkezi</h2><div id="financialCenter"></div></div>
 <div class="grid"><div class="card"><h2>Bu Ay</h2><div class="row"><span>Gelir</span><b class="positive" id="mIncome">₺0</b></div><div class="row"><span>Gider</span><b class="negative" id="mExpense">₺0</b></div><div class="row"><span>Tasarruf oranı</span><b id="saveRate">0%</b></div></div>
 <div class="card"><h2>Finansal Sağlık</h2><div class="health"><div class="score" id="scoreCircle"><span id="score">0</span></div><div style="flex:1"><b id="scoreText">Başlangıç</b><p class="muted">Tasarruf, borç, acil fon, bütçe, net varlık ve düzenli nakit dengesi birlikte değerlendirilir.</p><div id="healthDetails" class="healthDetails"></div></div></div></div></div>
