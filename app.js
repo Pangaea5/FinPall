@@ -1,6 +1,7 @@
+const fp590State={tab:'statements',screen:'base',detailCard:'',detailMonth:'',calendarMonth:'',expanded:'',editId:'',source:'base',proposal:null,preview:null,calendarExpanded:'',scrollY:0};
 
 const KEY='finpalData';
-const APP_VERSION=48;
+const APP_VERSION=50;
 const CATS={"Konut":["Kira","Aidat","Elektrik","Su","Doğalgaz","İnternet","Ev Bakımı"],"Gıda":["Market","Kasap","Restoran","Kafe"],"Ulaşım":["Yakıt","Toplu Taşıma","Otopark","Bakım"],"Sağlık":["Muayene","İlaç","Diş"],"Eğitim":["Kurs","Kitap","Okul"],"Abonelik":["Telefon","Netflix","Spotify","Diğer"],"Giyim":["Kıyafet","Ayakkabı"],"Eğlence":["Sinema","Hobi","Tatil"],"Borçlar":["Kredi","Kredi Kartı","Diğer"],"Yatırım":["Altın","Döviz","Hisse","Fon"],"Diğer":["Diğer"]};
 let data=load(), modalType=null, modalTypeCardId=null, budgetMonth=month(), reportMonth=month();
 try{snapshotNetWorth45()}catch(e){}
@@ -20,18 +21,45 @@ function money(n){return new Intl.NumberFormat('tr-TR',{style:'currency',currenc
 function month(d=new Date()){const x=d instanceof Date?d:new Date(d);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')}
 function fmt(d){if(!d)return '—';const x=/^\d{4}-\d{2}-\d{2}$/.test(String(d))?new Date(String(d)+'T12:00:00'):new Date(d);return Number.isNaN(x.getTime())?'—':x.toLocaleDateString('tr-TR')}
 function accountBalance(id){let a=data.accounts.find(x=>x.id===id);if(!a)return 0;let b=Number(a.opening||0),today=new Date();today.setHours(23,59,59,999);data.transactions.forEach(t=>{let td=new Date((t.date||'9999-12-31')+'T23:59:59');if(td>today)return;if(t.type==='transfer'){if(t.from===id)b-=+t.amount;if(t.to===id)b+=+t.amount}else if(t.accountId===id)b+=(t.type==='income'?1:-1)*+t.amount});return b}
-// Taksit satırındaki tarih, kullanıcının seçtiği HEDEF ilk taksit ayıdır.
-// Kaydedilmiş ilk taksit ayını yeniden yorumlayıp sonraki ekstreye kaydırma.
-// Normal tek çekim harcamalarda ise gerçek işlem tarihi hesap kesimine göre atanır.
-// Kaydedilen ilk taksit AYI ekstre ayıdır; zaman dilimi/son ödeme günü burada ay değiştirmez.
+// Her taksit gerçek planlanan işlem tarihinde ekstrelere girer.
+// Ayın 10'unda kesilen kartta 16 Ekim taksiti 10 Kasım ekstresine aittir.
+// 'targetStatementMonth' eski sürümlerde yalnızca işlem ayı etiketiydi;
+// onu banka kesim gününü yok sayan bir ekstre tarihi olarak KULLANMA.
 function installmentStatementDate(row,acc){
- const recorded=parseFinpalDate(row?.date);if(!recorded)return null;
- const target=/^\d{4}-(0[1-9]|1[0-2])$/.test(String(row?.targetStatementMonth||''))?row.targetStatementMonth:String(row?.date||'').slice(0,7);
- if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(target)||!parseFinpalDate(target+'-01'))return null;
- const sd=Math.max(1,Math.min(31,Number(acc?.statementDay)||1));
- const d=dateFromDay(Number(target.slice(0,4)),Number(target.slice(5))-1,sd);
- d.setHours(23,59,59,999);return d;
+ const planned=parseFinpalDate(row?.date);
+ return planned?statementCutForDate(planned,acc):null;
 }
+// FinPal ilk kurulurken eski ekstreler ödenmişti. Kartın takip başlangıcını
+// mağaza/alışveriş tarihinden DEĞİL kaydın oluşturulma zamanından çıkar.
+// uid() Date.now().toString(36) önekiyle üretilir; geçersiz/eski tip id'ler
+// yanlış başlangıç üretmesin. Kullanıcı isterse kart başına tarihle sabitler.
+function fpIdCreatedDate(id){
+ const s=String(id||''),prefix=s.slice(0,8);
+ if(!/^[0-9a-z]{8}$/i.test(prefix))return null;
+ const millis=parseInt(prefix,36);
+ const d=new Date(millis);
+ return Number.isFinite(millis)&&d.getFullYear()>=2020&&d.getFullYear()<=new Date().getFullYear()+1?d:null;
+}
+function fpCardTrackingStart(id,acc){
+ const manual=String(acc?.debtTrackingStartDate||'');
+ if(parseFinpalDate(manual))return {date:manual,source:'manual'};
+ const own=(data.transactions||[]).filter(t=>String(t.accountId)===String(id)||(t.type==='transfer'&&String(t.to)===String(id)));
+ const created=own.map(t=>fpIdCreatedDate(t.id)).filter(Boolean).sort((a,b)=>a-b);
+ if(!created.length){const accountCreated=fpIdCreatedDate(acc?.id);if(accountCreated)created.push(accountCreated);}
+ if(!created.length)return {date:null,source:'unknown'};
+ const startMonth=month(created[0]),activeDates=[];
+ for(const t of own){
+   if(t.type!=='expense')continue;
+   const d=parseFinpalDate(t.date);
+   if(d&&String(t.date).slice(0,7)===startMonth)activeDates.push(t.date);
+ }
+ // Aynı ayda eski taksitlerin 1/9, 2/9 gibi geçmiş kayıtları dikkate alınmaz.
+ // İlk dönem, fiilen kaydedilmiş bu ayın ilk harcamasıyla başlar.
+ activeDates.sort();
+ const begin=activeDates[0]||localDateFromDateFP(created[0]);
+ return {date:begin,source:'inferred'};
+}
+function localDateFromDateFP(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function parseFinpalDate(date){
  if(typeof date!=='string'||!/^(\d{4})-(\d{2})-(\d{2})$/.test(date))return null;
  const d=new Date(date+'T12:00:00');
@@ -96,27 +124,22 @@ function deleteInstallmentGroup(groupId){if(!confirm('Bu taksitli alışverişin
 // Eksik geçmiş ödemeler banka bağlantısı olmadığı için varsayılarak uydurulamaz.
 function cardInstallmentRows(id,acc,baseDate=new Date()){
  const now=new Date(baseDate);now.setHours(23,59,59,999);
+ const tracking=fpCardTrackingStart(id,acc),startDate=tracking.date;
  let openingExcluded=0,invalid=0,legacyAmbiguous=0;
  const rows=[];
  installmentGroupsForCard(id).forEach(g=>{
-   const sourceDate=g.rows.find(t=>parseFinpalDate(t.purchaseDate))?.purchaseDate;
-   const entered=parseFinpalDate(sourceDate);
-   const first=g.rows[0];
-   const firstMonth=first?String(first.targetStatementMonth||first.date||'').slice(0,7):'';
-   // Yalnızca belirgin şekilde geçmiş taksitleri SONRADAN topluca eklenen grupları tanı.
-   // İlk taksit ayı, girilen alışveriş ayından eskiyse başlangıçtaki kapalı ekstreler
-   // kullanıcı tarafından önceden ödenmiş olarak bildirilmiştir. Kayıtlar değiştirilmez.
-   const legacyImport=g.paidExplicit===null&&entered&&entered<=now&&/^\d{4}-\d{2}$/.test(firstMonth)&&firstMonth<month(entered);
-   const priorCut=legacyImport?statementWindow(acc,entered).last:null;
-   if(g.paidExplicit===null&&!entered&&g.rows.some(t=>installmentStatementDate(t,acc)<now))legacyAmbiguous++;
+   // Hesap açıldığında geçmiş ekstreler kapalıydı: ilk kez FinPal'a
+   // kaydedilmeden ÖNCE planlanmış taksitler borç değildir.
+   // İşlem kaydının orijinal tarihi ve taksit numarası aynen korunur.
+   if(!startDate&&g.paidExplicit===null)legacyAmbiguous++;
    (g.remainingRows||[]).forEach(t=>{
-     const cut=installmentStatementDate(t,acc);
-     if(!cut){invalid++;return}
-     if(priorCut&&cut<=priorCut){openingExcluded++;return}
+     const posted=parseFinpalDate(t.date),cut=installmentStatementDate(t,acc);
+     if(!posted||!cut){invalid++;return;}
+     if(startDate&&t.date<startDate){openingExcluded++;return;}
      rows.push({row:t,cut});
    });
  });
- return {rows,openingExcluded,invalid,legacyAmbiguous};
+ return {rows,openingExcluded,invalid,legacyAmbiguous,tracking};
 }
 // Eski kayıtları değiştirmeyen taksit bütünlüğü denetimi.
 function fpAuditCardInstallments(id){
@@ -149,7 +172,7 @@ function cardDebtBreakdown(id,baseDate=new Date()){
  const acc=data.accounts.find(a=>a.id===id),zero={oneShot:0,payments:0,paidMarked:0,overlap:0,netPayments:0,previous:0,newPeriod:0,current:0,future:0,total:0,monthly:0,unknown:0,unplaced:0,reconciliationNeeded:false,openingExcluded:0,legacyAmbiguous:0};
  if(!acc||acc.type!=='credit')return zero;
  const now=new Date(baseDate);now.setHours(23,59,59,999);
- const window=statementWindow(acc,now),cents=value=>Math.round((Number(value)||0)*100);
+ const window=statementWindow(acc,now),tracking=fpCardTrackingStart(id,acc),cents=value=>Math.round((Number(value)||0)*100);
  const buckets=new Map();let oneShot=0,monthly=0,unplaced=0,paidMarked=0,unknown=0;
  const add=(cut,value,isInstallment=false)=>{
    const sum=cents(value);if(sum<=0)return;
@@ -159,7 +182,7 @@ function cardDebtBreakdown(id,baseDate=new Date()){
  };
  (data.transactions||[]).forEach(t=>{
    if(t.accountId!==id||t.type!=='expense'||t.installmentGroup)return;
-   const d=parseFinpalDate(t.date);if(!d||d>now)return;
+   const d=parseFinpalDate(t.date);if(!d||d>now||(tracking.date&&t.date<tracking.date))return;
    oneShot+=cents(t.amount);add(statementCutForDate(d,acc),t.amount);
  });
  const groups=installmentGroupsForCard(id);
@@ -172,11 +195,13 @@ function cardDebtBreakdown(id,baseDate=new Date()){
  // Kart Öde, ödenmiş taksit sayısı ile TUTARDAN TAHMİN EDİLEREK eşleştirilmez.
  // Ödenmiş taksit işareti mevcut taksit satırını zaten dışlar; ayrı Kart Öde ayrı olaydır.
  const paymentCents=(data.transactions||[]).filter(t=>t.type==='transfer'&&t.to===id).reduce((sum,t)=>{
-   const d=parseFinpalDate(t.date);return d&&d<=now?sum+Math.max(0,cents(t.amount)):sum;
+   const d=parseFinpalDate(t.date);return d&&d<=now&&(!tracking.date||t.date>=tracking.date)?sum+Math.max(0,cents(t.amount)):sum;
  },0);
  let unallocated=paymentCents,previous=0,newPeriod=0,future=0;
  for(const [key,value] of [...buckets.entries()].sort(([a],[b])=>a.localeCompare(b))){
-   const allocated=Math.min(value,unallocated);unallocated-=allocated;
+   const cutDate=dateFromDay(Number(key.slice(0,4)),Number(key.slice(5))-1,Number(acc.statementDay)||1);cutDate.setHours(23,59,59,999);
+   // Kart Öde henüz kesilmemiş GELECEK TAKSİTLERİ sessizce kapatmaz.
+   const allocated=cutDate<=window.next?Math.min(value,unallocated):0;unallocated-=allocated;
    const net=value-allocated;
    const cut=dateFromDay(Number(key.slice(0,4)),Number(key.slice(5))-1,Number(acc.statementDay)||1);cut.setHours(23,59,59,999);
    if(cut<=window.last)previous+=net;
@@ -186,7 +211,7 @@ function cardDebtBreakdown(id,baseDate=new Date()){
  const toTL=v=>v/100;
  return {oneShot:toTL(oneShot),payments:toTL(paymentCents),paidMarked:toTL(paidMarked),overlap:0,netPayments:toTL(paymentCents),
    previous:toTL(previous),newPeriod:toTL(newPeriod),due:toTL(previous),current:toTL(previous+newPeriod),future:toTL(future),total:toTL(previous+newPeriod+future),monthly:toTL(monthly),unknown,unplaced:unplaced+scheduled.invalid,
-   reconciliationNeeded:paidMarked>0&&paymentCents>0,openingExcluded:scheduled.openingExcluded,legacyAmbiguous:scheduled.legacyAmbiguous,periodEnd:window.next,lastStatementEnd:window.last};
+   reconciliationNeeded:paidMarked>0&&paymentCents>0,openingExcluded:scheduled.openingExcluded,legacyAmbiguous:scheduled.legacyAmbiguous,trackingStart:tracking.date,trackingSource:tracking.source,unallocatedPayment:toTL(unallocated),periodEnd:window.next,lastStatementEnd:window.last};
 }
 function cardDebt(id){return cardDebtBreakdown(id).current}
 function cardFutureInstallments(id){return cardDebtBreakdown(id).future}
@@ -207,13 +232,15 @@ function renderBankDebtDashboard(){
  const sum=rows.reduce((n,x)=>n+x.b.total,0);
  const selected=document.getElementById('bdCard')?.value||'all';
  el.innerHTML='<div class="fpBankTotal"><span>Toplam kayıtlı kart borcu</span><strong>'+money(sum)+'</strong><small>Faiz ve banka ücretleri hariç</small></div>'+
- rows.map(({a,b})=>'<details class="fpBankRow"><summary class="fpBankSummary"><span class="fpBankIcon">💳</span><span class="fpBankInfo"><b>'+esc(a.name||'Kredi kartı')+'</b><small>Güncel dönem '+money(b.newPeriod)+' · Gelecek taksit '+money(b.future)+'</small></span><span class="fpBankAmount">'+money(b.total)+'<i>›</i></span></summary><div class="fpBankExpanded">'+
- '<div class="fpBankLine"><span>Bu ekstre dönemi</span><b>'+money(b.newPeriod)+'</b></div>'+
+ rows.map(({a,b})=>'<details class="fpBankRow"><summary class="fpBankSummary"><span class="fpBankIcon">💳</span><span class="fpBankInfo"><b>'+esc(a.name||'Kredi kartı')+'</b><small>'+esc(monthLabelFP(month(b.periodEnd)))+' ekstresi '+money(b.newPeriod)+' · Gelecek taksit '+money(b.future)+'</small></span><span class="fpBankAmount">'+money(b.total)+'<i>›</i></span></summary><div class="fpBankExpanded">'+
+ '<div class="fpBankLine"><span>'+esc(monthLabelFP(month(b.periodEnd)))+' ekstresi (bu dönem)</span><b>'+money(b.newPeriod)+'</b></div>'+
  (b.previous>0?'<div class="fpBankLine"><span>Önceki dönemden kalan (kayıtlara göre)</span><b>'+money(b.previous)+'</b></div>':'')+
  '<div class="fpBankLine"><span>Gelecek taksitler</span><b>'+money(b.future)+'</b></div>'+
  '<div class="fpBankLine fpBankLineTotal"><span>Toplam kalan borç</span><b>'+money(b.total)+'</b></div>'+
- '<div class="fpBankMeta">Son kesim: '+fmt(b.lastStatementEnd)+' · Sonraki kesim: '+fmt(b.periodEnd)+'</div>'+
+ '<div class="fpBankMeta">Hesap kesim günü: '+String(Math.max(1,Math.min(31,Number(a.statementDay)||1)))+' · Son kesim: '+fmt(b.lastStatementEnd)+' · Sonraki kesim: '+fmt(b.periodEnd)+'</div>'+
+ '<div class="fpBankMeta">İlk takip: '+(b.trackingStart?fmt(b.trackingStart):'Belirlenemedi')+(b.trackingSource==='inferred'?' (ilk kayıt ayından)':'')+' <button class="small" onclick="fpEditTrackingStart('+JSON.stringify(String(a.id)).replace(/"/g, '&quot;')+')">Düzenle</button></div>'+
  (b.openingExcluded?'<div class="fpBankNote">İlk kayıt sırasında daha eski ekstreye ait görünen '+b.openingExcluded+' taksit, tekrar borç yazılmadı. Kayıtlarına dokunulmadı.</div>':'')+
+ (b.unallocatedPayment>0?'<div class="fpBankNote">'+money(b.unallocatedPayment)+' fazla ödeme henüz vadesi gelmemiş taksitlerden düşülmedi.</div>':'')+
  (b.legacyAmbiguous?'<div class="fpBankNote">'+b.legacyAmbiguous+' eski taksit grubunda ilk giriş tarihi yok; geçmiş ödeme durumu kesin olarak doğrulanamıyor.</div>':'')+
  (b.reconciliationNeeded?'<div class="fpBankNote">Eski “ödendi” işaretleri ile Kart Öde hareketlerinin aynı ödemeyi temsil edip etmediği bilinmiyor. Tutarlar varsayılarak eşleştirilmedi.</div>':'')+
  (b.unplaced?'<div class="fpBankNote">'+b.unplaced+' geçersiz tarihli kayıt tutara dahil edilmedi.</div>':'')+
@@ -225,11 +252,21 @@ function renderBankDebtDashboard(){
  if(plan)plan.addEventListener('toggle',()=>{window.fpBankPlanOpen=plan.open});
  renderBankDebtDetails();
 }
+function fpEditTrackingStart(id){
+ const acc=data.accounts.find(a=>String(a.id)===String(id));if(!acc)return;
+ const existing=fpCardTrackingStart(id,acc);
+ const raw=prompt('Bu kartta önceki ekstrelerin ödendiği tarihten SONRAKİ ilk takip gününü girin (YYYY-AA-GG).\nÖrn. 2026-10-16. Kayıtlar silinmez.',existing.date||'');
+ if(raw===null)return;
+ const date=raw.trim();
+ if(!parseFinpalDate(date))return alert('Tarih YYYY-AA-GG biçiminde olmalı.');
+ if(!confirm('Kartın borç hesabı '+date+' tarihinden itibaren yapılacak. Önceki hareketler silinmeyecek. Onaylıyor musun?'))return;
+ acc.debtTrackingStartDate=date;save();
+}
 function renderBankDebtDetails(){
  const el=document.getElementById('bdMonthlyDetails'),sel=document.getElementById('bdCard');if(!el||!sel)return;
  const result=cmMonthlyData(sel.value),ym=month(),{installments}=result;
  const months=[];for(let i=0;i<12;i++)months.push(cmMonthShift(ym,i));
- el.innerHTML=cmTable(['Ekstre ayı','Planlanan taksit'],months.map(m=>['<b>'+esc(monthLabelFP(m))+'</b>',money(installments.get(m)||0)]));
+ el.innerHTML='<p class="muted">Aylar, harcama tarihine değil kartın hesap kesim tarihine göre adlandırılır.</p>'+cmTable(['Ekstre ayı','Planlanan taksit'],months.map(m=>['<b>'+esc(monthLabelFP(m))+'</b>',money(installments.get(m)||0)]));
 }
 function renderDashboardMonthlyInstallments(cards,baseDate){
  const currentMonth=month(baseDate);
@@ -279,7 +316,7 @@ function trackedAssetTotal(){return data.assets.reduce((s,a)=>s+Number(a.quantit
 function trackedAssetCost(){return data.assets.reduce((s,a)=>s+Number(a.quantity||0)*Number(a.unitCost||0),0)}
 function totals(){let assets=0,liab=0;data.accounts.forEach(a=>{if(a.type==='credit'){liab+=Math.max(0,cardInstallmentCommitment(a.id));return}let b=accountBalance(a.id);if(a.type==='debt')liab+=Math.max(0,-b||b);else assets+=Math.max(0,b)});assets+=trackedAssetTotal();let mi=data.transactions.filter(t=>t.type==='income'&&t.date.slice(0,7)===month()).reduce((s,t)=>s+ +t.amount,0),me=data.transactions.filter(t=>t.type==='expense'&&!t.installmentGroup&&t.date.slice(0,7)===month()).reduce((s,t)=>s+ +t.amount,0)+monthlyCardDebtTotal(new Date());return{assets,liab,net:assets-liab,mi,me}}
 
-function tab(id,btn){document.querySelectorAll('section[id]').forEach(s=>s.classList.add('hide'));document.querySelectorAll('.tabContent').forEach(s=>s.style.display='none');let target=document.getElementById(id);if(target)target.classList.remove('hide');else{target=document.getElementById('tab-'+id);if(target)target.style.display='block'}if(!target){console.warn('FinPal sekmesi bulunamadı:',id);return}document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');try{render()}catch(e){console.error('FinPal sekme render hatası:',e)}if(id==='ai36'&&typeof runAI36==='function')runAI36();if(id==='shoppingCenter'&&typeof refreshShopPrices==='function')refreshShopPrices(false)}
+function tab(id,btn){document.querySelectorAll('section[id]').forEach(s=>s.classList.add('hide'));document.querySelectorAll('.tabContent').forEach(s=>s.style.display='none');let target=document.getElementById(id);if(target)target.classList.remove('hide');else{target=document.getElementById('tab-'+id);if(target)target.style.display='block'}if(!target){console.warn('FinPal sekmesi bulunamadı:',id);return}document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');try{render()}catch(e){console.error('FinPal sekme render hatası:',e)}if(id==='transactions')fp590OnSectionEnter();if(id==='ai36'&&typeof runAI36==='function')runAI36();if(id==='shoppingCenter'&&typeof refreshShopPrices==='function')refreshShopPrices(false)}
 function openModal(title,type,body){modalType=type;document.getElementById('modalTitle').textContent=title;document.getElementById('modalBody').innerHTML=body;const saveButton=document.querySelector('#modal .actions button:last-child');if(saveButton){saveButton.setAttribute('onclick','submitModal()');saveButton.style.display='block';}document.getElementById('modal').classList.add('on')}
 function closeModal(){document.getElementById('modal').classList.remove('on');modalType=null;let b=document.querySelector('#modal .actions button:last-child');if(b)b.style.display='block'}
 function val(id){const el=document.getElementById(id);return el?el.value:''}
@@ -434,7 +471,7 @@ function renderEnvelopes(){
  if(!envs.length)html+='<div class="empty">Henüz zarf yok. + Zarf ile oluşturun.</div>';
  el.innerHTML=html;
 }
-function renderCategories(){categories.innerHTML=Object.entries(CATS).map(([k,v])=>`<div class="row"><div><b>${k}</b><div class="muted">${v.join(' · ')}</div></div><span class="pill">${v.length} alt kategori</span></div>`).join('')}
+function renderCategories(){const categories=document.getElementById('categories');if(!categories)return;categories.innerHTML=Object.entries(CATS).map(([k,v])=>`<div class="row"><div><b>${k}</b><div class="muted">${v.join(' · ')}</div></div><span class="pill">${v.length} alt kategori</span></div>`).join('')}
 function obligationRemaining(o){return Math.max(0,Number(o.remaining??o.amount??0))}
 function renderObligations(){let el=document.getElementById('obligations');if(!el)return;let arr=[...data.obligations].sort((a,b)=>(a.dueDate||'9999').localeCompare(b.dueDate||'9999'));el.innerHTML=arr.map(o=>{let rem=obligationRemaining(o),pct=Number(o.amount)>0?Math.min(100,Math.round((1-rem/Number(o.amount))*100)):0;let overdue=o.dueDate&&new Date(o.dueDate+'T23:59:59')<new Date()&&rem>0;return `<div class="accountBox"><div class="row"><div><b>${o.type==='debt'?'🔴':'🟢'} ${o.name}</b><div class="muted">${o.type==='debt'?'Borç':'Alacak'}${o.dueDate?' · Vade '+fmt(o.dueDate):''}</div></div><div><b>${money(rem)}</b><div class="muted">Kalan</div></div></div><div class="progress"><div class="bar" style="width:${pct}%"></div></div><div class="muted">Başlangıç ${money(o.amount)} · Ödenen/Tahsil ${money(Number(o.amount)-rem)}${overdue?' · ⛔ Vadesi geçti':''}</div><div class="account-actions" style="margin-top:7px"><button class="small" onclick="openObligationPayment('${o.id}')">${o.type==='debt'?'Ödeme Yap':'Tahsil Et'}</button><button class="small danger" onclick="deleteObligation('${o.id}')">Sil</button></div></div>`}).join('')||'<div class="empty">Henüz borç veya alacak kaydı yok.</div>'}
 function openObligation(type){openModal(type==='debt'?'Yeni Borç':'Yeni Alacak','obligation',`<input id="oType" type="hidden" value="${type}"><label>${type==='debt'?'Borçlu olduğunuz kişi/kurum':'Sizden alacağı olan kişi/kurum'}</label><input id="oName" placeholder="Örn. Ahmet / Banka"><label>Toplam tutar</label><input id="oAmount" type="number" step="0.01" inputmode="decimal" placeholder="0"><label>Vade tarihi (isteğe bağlı)</label><input id="oDue" type="date"><div class="grid"><div><label>Yıllık faiz (%)</label><input id="oInterest" type="number" step="0.01" value="0"></div><div><label>Minimum aylık ödeme</label><input id="oMinPay" type="number" step="0.01" value="0"></div></div><label>Not</label><input id="oNote" placeholder="Örn. 3 taksit, senet vb."><div class="muted">Faiz ve minimum ödeme bilgileri girilirse Avalanche / Snowball simülasyonu daha doğru çalışır.</div>`)}
@@ -507,8 +544,8 @@ function renderCardMonthlyCenter(){
  if(unknown)monthly.innerHTML+='<p class="muted">⚠ '+unknown+' taksit grubunda ödeme sayısı girilmemiş. Ödenen taksit sayısı bilinmiyor; Kart Öde kayıtlarını ve eski ekstreleri kontrol edin.</p>';
  monthly.innerHTML+='<p class="muted">Harcama: alışverişin toplam tutarı, alışverişin yapıldığı ayda tek kez gösterilir. Taksit: ilk taksit için seçilen aydan başlayarak kalan taksitlerin ekstre ayı. Kart ödemeleri harcama kategorisine eklenmez.</p>';
 }
-function openCardMonthlyCenter(cardId){tab('transactions');const sel=document.getElementById('cmCard');if(sel){renderCardMonthlyCenter();sel.value=String(cardId);renderCardMonthlyCenter()}document.getElementById('cardMonthlyCenter')?.scrollIntoView({behavior:'smooth',block:'start'})}
-function renderAccounts(){let el=document.getElementById('accounts');if(!el)return;el.innerHTML=data.accounts.length?data.accounts.map(a=>{let b=accountBalance(a.id),isCard=a.type==='credit',ci=isCard?cardInfo(a.id):null,ist=isCard?installmentStatusForCard(a.id):null;return `<div class="accountBox"><div class="row"><div><b>${a.name}</b><div class="muted">${a.type==='bank'?'Banka':a.type==='cash'?'Nakit':a.type==='credit'?'Kredi Kartı':a.type==='investment'?'Yatırım':'Borç'}</div></div><b>${money(isCard?(ci?.debt||0):b)}</b></div>${isCard?`<div class="muted">Limit ${money(a.cardLimit)} · Kullanılabilir ${money(ci?.available||0)} · Önceki ekstre ${money(ci?.previous||0)} · Yeni dönem tahmini ${money(ci?.newPeriod||0)} · Güncel + tahmini borç ${money(ci?.debt||0)} · Gelecek taksit ${money(ci?.futureInstallments||0)} · Toplam kalan borç ${money(ci?.installmentCommitment||0)}${ist?.groups?` · Taksit durumu ${ist.unknown?'Ödemeler Kart Öde ile takip edilir':ist.paid+' ödendi / '+ist.left+' kaldı'}`:''} · Ödenmemiş eski ekstre ${money(ci?.statement||0)} · Son ödeme ${ci?.due?fmt(ci.due):'—'}</div>`:''}<div class="account-actions" style="margin-top:7px">${isCard?`<button class="small" onclick="openTx('expense','${a.id}')">+ Harcama</button><button class="small" onclick="openCardPayment('${a.id}')">Kart Öde</button><button class="small" onclick="openCardMonthlyCenter('${a.id}')">Aylık Özet</button>`:''}<button class="small danger" onclick="deleteAccount('${a.id}')">Sil</button></div></div>`}).join(''):'<div class="empty">Henüz hesap eklenmedi.</div>'}
+function openCardMonthlyCenter(cardId){tab('transactions');fp590State.tab='calendar';fp590State.calendarMonth=fp590NextStatement(fp590Card(cardId)||fp590Cards()[0]||{statementDay:1});fp590State.calendarExpanded=String(cardId);fp590Render();document.getElementById('txcRoot')?.scrollIntoView({behavior:'smooth',block:'start'})}
+function renderAccounts(){let el=document.getElementById('accounts');if(!el)return;el.innerHTML=data.accounts.length?data.accounts.map(a=>{let b=accountBalance(a.id),isCard=a.type==='credit',ci=isCard?cardInfo(a.id):null,ist=isCard?installmentStatusForCard(a.id):null;return `<div class="accountBox"><div class="row"><div><b>${a.name}</b><div class="muted">${a.type==='bank'?'Banka':a.type==='cash'?'Nakit':a.type==='credit'?'Kredi Kartı':a.type==='investment'?'Yatırım':'Borç'}</div></div><b>${money(isCard?(ci?.debt||0):b)}</b></div>${isCard?`<div class="muted">Bu dönem ${money(ci?.newPeriod||0)} · Önceki ekstre ${money(ci?.previous||0)} · Gelecek taksit ${money(ci?.futureInstallments||0)} · Toplam borç ${money(ci?.installmentCommitment||0)} · Limit ${money(a.cardLimit)} · Kullanılabilir ${money(ci?.available||0)}</div>`:''}<div class="account-actions" style="margin-top:7px">${isCard?`<button class="small" onclick="openTx('expense','${a.id}')">+ Harcama</button><button class="small" onclick="openCardPayment('${a.id}')">Kart Öde</button><button class="small" onclick="openCardMonthlyCenter('${a.id}')">Aylık Özet</button>`:''}<button class="small danger" onclick="deleteAccount('${a.id}')">Sil</button></div></div>`}).join(''):'<div class="empty">Henüz hesap eklenmedi.</div>'}
 function openCardPayment(id){let card=data.accounts.find(a=>a.id===id);let opts=data.accounts.filter(a=>a.id!==id&&a.type!=='credit').map(a=>`<option value="${a.id}">${a.name}</option>`).join('');if(!card||!opts)return alert('Kart ödemesi için banka veya nakit hesabı ekleyin.');openModal('Kredi Kartı Ödeme','cardPayment',`<label>Ödeme yapılacak hesap</label><select id="cpFrom">${opts}</select><label>Tutar</label><input id="cpAmount" type="number" step="0.01" max="${cardDebt(id)}" placeholder="${cardDebt(id).toFixed(2)}"><label>Tarih</label><input id="cpDate" type="date" value="${new Date().toISOString().slice(0,10)}"><div class="muted">Güncel + tahmini dönem borcu: <b>${money(cardDebt(id))}</b></div>`);modalTypeCardId=id}
 
 function monthTotals(m){let inc=data.transactions.filter(t=>t.type==='income'&&t.date.slice(0,7)===m).reduce((s,t)=>s+Number(t.amount||0),0);let exp=data.transactions.filter(t=>t.type==='expense'&&t.date.slice(0,7)===m).reduce((s,t)=>s+Number(t.amount||0),0);return{inc,exp,net:inc-exp}}
@@ -1021,8 +1058,8 @@ function deleteBankTxPersist(ids,successMessage){
 function deleteBankTxFromModal(){deleteBankTxById(val('beId'))}
 
 function render(){renderBankDebtDashboard();let t=totals();document.getElementById('today').textContent=new Date().toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long'});document.getElementById('netWorth').textContent=money(t.net);document.getElementById('assets').textContent=money(t.assets);document.getElementById('liabilities').textContent=money(t.liab);document.getElementById('monthNet').textContent=money(t.mi-t.me);document.getElementById('mIncome').textContent=money(t.mi);document.getElementById('mExpense').textContent=money(t.me);let sr=t.mi>0?Math.round((t.mi-t.me)/t.mi*100):0;document.getElementById('saveRate').textContent=sr+'%';renderFinancialHealth();
- let all=fpGroupedTransactions(data.transactions);
- document.getElementById('allTx').innerHTML=all.length?all.map(g=>fpGroupedTxHtml(g)).join(''):'<div class="empty">Henüz işlem yok.</div>';
+ // 5.9.0: İşlemler sekmesi tek İşlem Merkezi üzerinden çizilir.
+ try{fp590Render()}catch(e){console.error('İşlem Merkezi:',e)}
  try{renderCardMonthlyCenter()}catch(e){console.error("Kart aylık özeti:",e)};try{renderBankTx()}catch(e){console.error("Banka bazlı işlem yönetimi:",e)};try{renderEnvelopes()}catch(e){console.error("FinPal renderEnvelopes render hatası",e)};try{renderAllocationSummary()}catch(e){console.error("FinPal renderAllocationSummary render hatası",e)};try{renderBudgets()}catch(e){console.error("FinPal renderBudgets render hatası",e)};try{renderExecutiveDashboard()}catch(e){console.error("FinPal renderExecutiveDashboard render hatası",e)};try{renderFinancialCenter()}catch(e){console.error("FinPal renderFinancialCenter render hatası",e)};try{renderCoach()}catch(e){console.error("FinPal renderCoach render hatası",e)};try{renderAI()}catch(e){console.error("FinPal renderAI render hatası",e)};try{renderEmergency()}catch(e){console.error("FinPal renderEmergency render hatası",e)};try{renderAssets()}catch(e){console.error("FinPal renderAssets render hatası",e)};try{renderAssets45()}catch(e){console.error("FinPal renderAssets45 render hatası",e)};try{renderDebts()}catch(e){console.error("FinPal renderDebts render hatası",e)};try{renderSecurity()}catch(e){console.error("FinPal renderSecurity render hatası",e)};try{renderReports()}catch(e){console.error("FinPal renderReports render hatası",e)};try{renderCashflow()}catch(e){console.error("FinPal renderCashflow render hatası",e)};try{renderForecast()}catch(e){console.error("FinPal renderForecast render hatası",e)};try{renderCategories()}catch(e){console.error("FinPal renderCategories render hatası",e)};try{renderObligations()}catch(e){console.error("FinPal renderObligations render hatası",e)};try{renderInstallmentCalendar()}catch(e){console.error("FinPal renderInstallmentCalendar render hatası",e)};try{renderPaymentPlan()}catch(e){console.error("FinPal renderPaymentPlan render hatası",e)};try{renderPlans()}catch(e){console.error("FinPal renderPlans render hatası",e)};try{renderMonthlyExpenses()}catch(e){console.error("FinPal renderMonthlyExpenses render hatası",e)};try{renderChart()}catch(e){console.error("FinPal renderChart render hatası",e)};try{renderAccounts()}catch(e){console.error("FinPal renderAccounts render hatası",e)};try{smartAlerts()}catch(e){console.error("FinPal smartAlerts render hatası",e)}}
 function backup(){let blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='finpal-2.0-final-yedek-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(a.href)}
 function restore(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(!x||!x.accounts||!x.transactions)throw 0;if(confirm('Mevcut veriler yedek ile değiştirilsin mi?')){data=migrate(x);save();alert('Yedek başarıyla yüklendi.')}}catch(err){alert('Geçersiz FinPal yedeği.')}};r.readAsText(f)}
@@ -2114,3 +2151,328 @@ setTimeout(renderDeviceTransfer52,350);
 
 function finpalAudit54(){return {ok:true,issues:[],version:APP_VERSION}}
 window.finpalAudit54=finpalAudit54;
+
+
+/* FinPal 5.9.0 — İşlem Merkezi. Veriler salt okunur; açık onay dışında kayıt değiştirilmez. */
+
+function fp590Cards(){return (data.accounts||[]).filter(a=>a.type==='credit')}
+function fp590Card(id){return fp590Cards().find(a=>String(a.id)===String(id))}
+function fp590Arg(id){return "'"+encodeURIComponent(String(id)).replace(/'/g,'%27')+"'"}
+function fp590Unarg(v){try{return decodeURIComponent(v)}catch(_){return String(v)}}
+function fp590Cents(n){return Math.round((Number(n)||0)*100)}
+function fp590Currency(c){return money(c/100)}
+function fp590CutMonth(row,acc){const d=statementCutForDate(row.date,acc);return d?month(d):''}
+function fp590Due(cut,acc){
+ if(!cut)return null;
+ const dueDay=Math.max(1,Math.min(31,Number(acc.dueDay)||10));
+ let due=dateFromDay(cut.getFullYear(),cut.getMonth(),dueDay);
+ if(due<=cut)due=dateFromDay(cut.getFullYear(),cut.getMonth()+1,dueDay);
+ return due;
+}
+function fp590CutForMonth(acc,ym){
+ if(!/^\d{4}-\d{2}$/.test(ym))return null;
+ return dateFromDay(Number(ym.slice(0,4)),Number(ym.slice(5))-1,Number(acc.statementDay)||1);
+}
+// Muhasebe görünümü: alışveriş tek kayıt, taksitler gerçek ekstre aylarında.
+// 'paid' sayısı sadece açıkça kaydedilmişse geçerlidir; geçmiş kesim tek başına ödeme kanıtı değildir.
+function fp590StatementSnapshot(acc,transactions=data.transactions){
+ const tracking=fpCardTrackingStart(acc.id,acc).date;
+ const list=[],installments=new Map();
+ for(const t of transactions){
+  if(t.type!=='expense'||String(t.accountId)!==String(acc.id))continue;
+  if(t.installmentGroup){const k=String(t.installmentGroup);if(!installments.has(k))installments.set(k,[]);installments.get(k).push(t)}
+  else{
+   const d=parseFinpalDate(t.date);
+   if(!d||(tracking&&t.date<tracking))continue;
+   const ym=fp590CutMonth(t,acc);if(!ym)continue;
+   list.push({row:t,kind:'single',ym,cents:fp590Cents(t.amount),label:t.description||'Tek çekim alışveriş'});
+  }
+ }
+ for(const rows of installments.values()){
+  const explicit=rows.find(r=>r.installmentPaidCount!==undefined);
+  const paid=explicit?Math.max(0,Number(explicit.installmentPaidCount)||0):0;
+  for(const t of rows){
+   if(Number(t.installmentNo||0)<=paid)continue;
+   if(!parseFinpalDate(t.date)||(tracking&&t.date<tracking))continue;
+   const ym=fp590CutMonth(t,acc);if(!ym)continue;
+   list.push({row:t,kind:'installment',ym,cents:fp590Cents(t.amount),label:t.description||'Taksitli alışveriş'});
+  }
+ }
+ const buckets=new Map();
+ for(const entry of list){
+  if(!buckets.has(entry.ym))buckets.set(entry.ym,{single:0,installment:0,payment:0,net:0,rows:[]});
+  const b=buckets.get(entry.ym);b[entry.kind]+=entry.cents;b.rows.push(entry);
+ }
+ const win=statementWindow(acc),lastEligible=month(win.next);
+ const now=localDateFP();
+ let funds=transactions.filter(t=>t.type==='transfer'&&String(t.to)===String(acc.id)&&parseFinpalDate(t.date)&&t.date<=now&&(!tracking||t.date>=tracking)).reduce((n,t)=>n+Math.max(0,fp590Cents(t.amount)),0);
+ for(const [ym,b] of [...buckets.entries()].sort(([a],[b])=>a.localeCompare(b))){
+  const gross=b.single+b.installment;
+  const allocated=ym<=lastEligible?Math.min(gross,funds):0;
+  b.payment=allocated;b.net=gross-allocated;funds-=allocated;
+ }
+ return {buckets,unallocated:funds};
+}
+function fp590Stat(acc,ym,transactions=data.transactions){
+ return fp590StatementSnapshot(acc,transactions).buckets.get(ym)||{single:0,installment:0,payment:0,net:0,rows:[]};
+}
+function fp590NextStatement(acc){return month(statementWindow(acc).next)}
+function fp590Render(){
+ const root=document.getElementById('txcRoot');if(!root)return;
+ for(const [tab,id] of [['statements','txcStatements'],['transactions','txcTransactions'],['calendar','txcCalendar']]){
+  const el=document.getElementById(id),button=document.getElementById(tab==='statements'?'txcTabStatements':tab==='transactions'?'txcTabTransactions':'txcTabCalendar');
+  if(el)el.hidden=fp590State.tab!==tab;
+  if(button){button.classList.toggle('active',fp590State.tab===tab);button.setAttribute('aria-selected',String(fp590State.tab===tab))}
+ }
+ const screens={base:'txcBase',detail:'txcDetail',edit:'txcEditor',preview:'txcPreview'};
+ for(const [state,id] of Object.entries(screens)){const el=document.getElementById(id);if(el)el.hidden=fp590State.screen!==state}
+ if(fp590State.tab==='statements')fp590RenderStatements();
+ if(fp590State.tab==='transactions')fp590RenderTransactions();
+ if(fp590State.tab==='calendar')fp590RenderCalendar();
+ if(fp590State.screen==='detail')fp590RenderDetail();
+}
+function fp590SetTab(tab){if(!['statements','transactions','calendar'].includes(tab))return;fp590State.tab=tab;fp590State.screen='base';fp590Render()}
+function fp590OnSectionEnter(){fp590State.tab='statements';fp590State.screen='base';fp590Render()}
+function fp590RenderStatements(){
+ const el=document.getElementById('txcStatementCards');if(!el)return;
+ const cards=fp590Cards();
+ if(!cards.length){el.innerHTML='<div class="txc-empty">Henüz kredi kartı eklenmedi. Hesaplar bölümünden kart ekleyebilirsin.</div>';return}
+ el.innerHTML='<p class="txc-note">Her kartın <b>sıradaki ekstresi</b> gösteriliyor. Dönemler kartın kendi kesim gününe göre hesaplanır.</p>'+cards.map(acc=>{
+  const ym=fp590NextStatement(acc),b=fp590Stat(acc,ym),window=statementWindow(acc),closed=new Date()>window.next;
+  const overdue=cardDebtBreakdown(acc.id).previous;
+  const status=closed?'Kesilmiş ekstre':'Açık dönem';
+  return '<div class="txc-card"><button class="txc-tile" type="button" onclick="fp590OpenDetail('+fp590Arg(acc.id)+','+fp590Arg(ym)+')"><div class="txc-line"><div><div class="txc-name">'+esc(acc.name||'Kredi kartı')+'</div><div class="txc-sub">'+esc(monthLabelFP(ym))+' ekstresi · '+status+'</div></div><span aria-hidden="true">›</span></div><div class="txc-sub" style="margin-top:14px">Bu ekstreye ait kalan işlemler</div><div class="txc-total">'+fp590Currency(b.net)+'</div></button><div class="txc-line txc-details"><span class="txc-mini">Dönem işlemleri: '+fp590Currency(b.single+b.installment)+'</span><span class="txc-mini">Kesim: '+fmt(window.next)+'</span></div>'+(overdue>0?'<div class="txc-note" style="color:#ad4b19">Önceki dönemden kalan: '+money(overdue)+' (bu ekstreye eklenmedi)</div>':'')+'</div>';
+ }).join('');
+}
+function fp590OpenDetail(encId,encYm){
+ const id=fp590Unarg(encId),ym=fp590Unarg(encYm);if(!fp590Card(id)||!/^\d{4}-\d{2}$/.test(ym))return;
+ fp590State.scrollY=window.scrollY||0;fp590State.detailCard=id;fp590State.detailMonth=ym;fp590State.screen='detail';fp590Render();window.scrollTo(0,0);
+}
+function fp590OpenFromCalendar(encId){fp590OpenDetail(encId,fp590Arg(fp590State.calendarMonth))}
+function fp590DetailLine(entry){
+ const t=entry.row,group=entry.kind==='installment';
+ return '<div class="txc-card"><div class="txc-line"><div style="min-width:0"><div class="txc-name">'+esc(entry.label)+'</div><div class="txc-sub">'+fmt(t.date)+(group?' · '+esc(String(t.installmentNo||'?'))+'/'+esc(String(t.installmentCount||'?'))+' taksit':' · Tek çekim')+'</div></div><div class="txc-amount">'+fp590Currency(entry.cents)+'</div></div><div class="txc-controls"><button type="button" class="txc-button-secondary" onclick="fp590StartEdit('+fp590Arg(t.id)+')">✎ Alışverişi düzenle</button></div></div>';
+}
+function fp590RenderDetail(){
+ const el=document.getElementById('txcDetail'),acc=fp590Card(fp590State.detailCard),ym=fp590State.detailMonth;if(!el||!acc)return;
+ const b=fp590Stat(acc,ym),cut=fp590CutForMonth(acc,ym),due=fp590Due(cut,acc),closed=cut<new Date(),window=statementWindow(acc),isUpcoming=month(window.next)===ym;
+ const periodType=(cut&&new Date(cut.getFullYear(),cut.getMonth(),cut.getDate(),23,59,59,999)<new Date())?'Kesilmiş ekstre':isUpcoming?'Açık dönem':'Gelecek dönem';
+ const rows=b.rows.sort((a,b)=>String(a.row.date).localeCompare(String(b.row.date))) ;
+ el.innerHTML='<div class="txc-detail-view"><button type="button" class="txc-back" onclick="fp590BackFromDetail()">‹ Ekstrelere dön</button><div class="txc-heading"><div><h2>'+esc(acc.name||'Kredi kartı')+'</h2><p class="muted">'+esc(monthLabelFP(ym))+' ekstresi · '+periodType+'</p></div><span style="font-size:26px">💳</span></div><div class="txc-summary"><div class="txc-sub">Ekstreye ait kalan tutar</div><div class="txc-main-number">'+fp590Currency(b.net)+'</div><div class="txc-meta"><span>Tek çekim</span><b>'+fp590Currency(b.single)+'</b></div><div class="txc-meta"><span>Bu ekstrenin taksitleri</span><b>'+fp590Currency(b.installment)+'</b></div><div class="txc-divider"></div><div class="txc-meta"><span>Ekstre işlemleri toplamı</span><b>'+fp590Currency(b.single+b.installment)+'</b></div><div class="txc-meta"><span>Kayıtlı kart ödemesi mahsup edilen</span><b>'+fp590Currency(b.payment)+'</b></div><div class="txc-meta"><span>Hesap kesim</span><b>'+fmt(cut)+'</b></div><div class="txc-meta"><span>Son ödeme günü (kart ayarı)</span><b>'+(due?fmt(due):'—')+'</b></div></div><div class="txc-line"><b>Ekstre hareketleri</b><span class="txc-mini">'+rows.length+' hareket</span></div>'+(rows.length?rows.map(fp590DetailLine).join(''):'<div class="txc-empty">Bu ekstrede kayıtlı harcama veya taksit yok.</div>')+'<p class="txc-note">Henüz kesilmemiş dönemler kesinleşmiş banka ekstresi değildir. Kayıtlı olmayan faiz, ücret veya iade tutarları otomatik üretilmez.</p></div>';
+}
+function fp590BackFromDetail(){fp590State.screen='base';fp590Render();window.scrollTo(0,fp590State.scrollY||0)}
+function fp590UpdateBankOptions(){
+ const el=document.getElementById('txcBank');if(!el)return;
+ const val=el.value;
+ const opts='<option value="all">Tüm bankalar ve hesaplar</option>'+(data.accounts||[]).map(a=>'<option value="'+esc(String(a.id))+'">'+esc(a.name||'Hesap')+'</option>').join('');
+ if(el.innerHTML!==opts){el.innerHTML=opts;el.value=[...el.options].some(o=>o.value===val)?val:'all'}
+}
+function fp590RenderTransactions(){
+ const el=document.getElementById('txcTxRows');if(!el)return;
+ fp590UpdateBankOptions();
+ const bank=document.getElementById('txcBank')?.value||'all',kind=document.getElementById('txcType')?.value||'all',q=(document.getElementById('txcSearch')?.value||'').toLocaleLowerCase('tr-TR').trim();
+ const groups=fpGroupedTransactions(data.transactions).filter(g=>{
+  const t=g.tx,accounts=t.type==='transfer'?[t.from,t.to]:[t.accountId];
+  if(bank!=='all'&&!accounts.some(id=>String(id)===String(bank)))return false;
+  if(kind==='installment'&&g.kind!=='installment')return false;
+  if(kind==='single'&&(g.kind==='installment'||t.type!=='expense'))return false;
+  if(kind==='income'&&t.type!=='income')return false;
+  if(kind==='transfer'&&t.type!=='transfer')return false;
+  return !q||[t.description,t.category,t.categorySubcategory,...accounts.map(bankTxAccountName)].join(' ').toLocaleLowerCase('tr-TR').includes(q);
+ });
+ document.getElementById('txcTxCount').textContent=groups.length+' alışveriş / işlem · En yeni önce';
+ el.innerHTML=groups.length?groups.slice(0,350).map(g=>{
+  const t=g.tx,isGroup=g.kind==='installment',key=isGroup?String(g.key):String(t.id),expanded=fp590State.expanded===key;
+  const category=t.categorySubcategory||t.category||'İşlem',acc=t.type==='transfer'?bankTxAccountName(t.from)+' → '+bankTxAccountName(t.to):bankTxAccountName(t.accountId);
+  return '<div class="txc-card"><button type="button" class="txc-tile" onclick="fp590ToggleTransaction('+fp590Arg(key)+')"><div class="txc-line"><div style="min-width:0"><div class="txc-name">'+esc(t.description||category)+'</div><div class="txc-sub">'+esc(acc)+' · '+esc(fmt(g.date))+'</div></div><div class="txc-amount">'+money(isGroup?g.total:t.amount)+'<div class="txc-sub">'+(expanded?'⌃':'⌄')+'</div></div></div><div class="txc-sub" style="margin-top:8px">'+(isGroup?g.count+' taksit · Alışveriş tek kayıt':t.type==='expense'?'Tek çekim':t.type==='income'?'Gelir':'Transfer')+'</div></button>'+(expanded?'<div class="txc-details"><div class="txc-meta"><span>Kategori</span><b>'+esc(category)+'</b></div>'+(isGroup?'<div class="txc-meta"><span>İlk taksit</span><b>'+esc(fmt(g.rows[0].date))+'</b></div><div class="txc-meta"><span>Plan</span><b>'+g.count+' taksit'+(g.paid!==null?' · '+g.paid+' ödenmiş işaretli':'')+'</b></div>':'')+'<div class="txc-controls"><button type="button" class="txc-button-secondary" onclick="fp590StartEdit('+fp590Arg(t.id)+')">✎ '+(isGroup?'Taksit düzenle':'Düzenle')+'</button><button type="button" class="txc-button-danger" onclick="fp590StartDelete('+fp590Arg(t.id)+')">Sil</button></div></div>':'')+'</div>';
+ }).join('')+(groups.length>350?'<p class="txc-note">350 kayıt gösteriliyor. Daha fazla kayıt için aramayı daralt.</p>':''):'<div class="txc-empty">Bu filtrelerde işlem bulunamadı.</div>';
+}
+function fp590ToggleTransaction(encoded){const key=fp590Unarg(encoded);fp590State.expanded=fp590State.expanded===key?'':key;fp590RenderTransactions()}
+function fp590MoveCalendar(n){
+ if(!fp590State.calendarMonth){fp590State.calendarMonth=month();}
+ fp590State.calendarMonth=addMonthsDate(fp590State.calendarMonth+'-01',n).slice(0,7);fp590RenderCalendar();
+}
+function fp590RenderCalendar(){
+ const label=document.getElementById('txcCalLabel'),total=document.getElementById('txcCalSum'),el=document.getElementById('txcCalBanks');if(!el)return;
+ if(!fp590State.calendarMonth){const cards=fp590Cards(),months=cards.map(fp590NextStatement).sort();fp590State.calendarMonth=months[0]||month()}
+ const ym=fp590State.calendarMonth;label.textContent=monthLabelFP(ym);
+ let cents=0;
+ el.innerHTML=fp590Cards().map(acc=>{
+  const b=fp590Stat(acc,ym),sum=b.net; cents+=sum;
+  const expanded=fp590State.calendarExpanded===String(acc.id),due=fp590Due(fp590CutForMonth(acc,ym),acc);
+  return '<div class="txc-card"><button class="txc-tile" type="button" onclick="fp590ToggleCalendarCard('+fp590Arg(acc.id)+')"><div class="txc-line"><div><div class="txc-name">'+esc(acc.name||'Kart')+'</div><div class="txc-sub">'+esc(monthLabelFP(ym))+' ekstresi · Kesim '+fmt(fp590CutForMonth(acc,ym))+'</div></div><div class="txc-amount">'+fp590Currency(sum)+'<div class="txc-sub">'+(expanded?'⌃':'⌄')+'</div></div></div></button>'+(expanded?'<div class="txc-details"><div class="txc-meta"><span>Tek çekim</span><b>'+fp590Currency(b.single)+'</b></div><div class="txc-meta"><span>Taksitler</span><b>'+fp590Currency(b.installment)+'</b></div><div class="txc-meta"><span>Kayıtlı ödeme mahsup edilen</span><b>'+fp590Currency(b.payment)+'</b></div><div class="txc-meta"><span>Son ödeme günü (kart ayarı)</span><b>'+(due?fmt(due):'—')+'</b></div><div class="txc-controls"><button class="txc-button-secondary" type="button" onclick="fp590OpenFromCalendar('+fp590Arg(acc.id)+')">Ekstre hareketleri ›</button></div></div>':'')+'</div>';
+ }).join('')||'<div class="txc-empty">Kredi kartı bulunamadı.</div>';
+ // Eski aylık özetin kategori kırılımı kaybolmasın; ekstre toplamına EKLENMEZ.
+ try{
+  const categoryData=cmMonthlyData('all');
+  const entries=[...categoryData.cats.entries()].filter(([key])=>key.startsWith(ym+'|')).sort((a,b)=>b[1]-a[1]);
+  el.innerHTML+='<details class="txc-card"><summary class="txc-name" style="cursor:pointer">Kategoriye göre alışverişler</summary><p class="txc-note">Bu bilgi amaçlı kategori analizidir. Taksitli alışveriş toplamı yalnızca alışverişin gerçekleştiği dönemde bir kez sayılır; ekstre borcuna ayrıca eklenmez.</p>'+(entries.length?entries.map(([key,amt])=>'<div class="txc-meta"><span>'+esc(key.split('|').slice(1).join('|'))+'</span><b>'+money(amt)+'</b></div>').join(''):'<div class="txc-empty">Bu ay kategoriye ayrılmış alışveriş yok.</div>')+'</details>';
+ }catch(e){console.error('İşlem Merkezi kategori görünümü',e)}
+ total.textContent=fp590Currency(cents);
+}
+function fp590ToggleCalendarCard(encoded){const id=fp590Unarg(encoded);fp590State.calendarExpanded=fp590State.calendarExpanded===id?'':id;fp590RenderCalendar()}
+function fp590GroupedForId(id){return fpGroupedTransactions(data.transactions).find(g=>g.kind==='installment'?g.rows.some(t=>String(t.id)===String(id)):String(g.tx.id)===String(id))}
+function fp590ShowScreen(screen){fp590State.screen=screen;for(const [name,id] of Object.entries({base:'txcBase',detail:'txcDetail',edit:'txcEditor',preview:'txcPreview'})){const el=document.getElementById(id);if(el)el.hidden=name!==screen}window.scrollTo(0,0)}
+function fp590SelectOptions(selected){return (data.accounts||[]).map(a=>'<option value="'+esc(String(a.id))+'"'+(String(a.id)===String(selected)?' selected':'')+'>'+esc(a.name||'Hesap')+'</option>').join('')}
+function fp590Field(id,label,value,type='text',extra=''){
+ return '<div><label for="'+id+'">'+esc(label)+'</label><input id="'+id+'" type="'+type+'" value="'+esc(String(value??''))+'" '+extra+'></div>';
+}
+function fp590StartEdit(encoded){
+ const id=fp590Unarg(encoded),g=fp590GroupedForId(id);if(!g)return alert('İşlem bulunamadı.');
+ const t=g.tx,group=g.kind==='installment',first=group?g.rows[0]:t,amount=group?g.total:Number(t.amount||0);
+ fp590State.source=fp590State.screen==='detail'?'detail':'base';fp590State.editId=String(t.id);fp590State.proposal=null;fp590State.preview=null;
+ const options=fp590SelectOptions(t.accountId),isTransfer=t.type==='transfer',groups=Object.keys(CATS),current=t.categoryGroup||groups.find(k=>CATS[k].includes(t.categorySubcategory||t.category))||'Diğer';
+ const catOptions=groups.map(k=>'<option value="'+esc(k)+'"'+(k===current?' selected':'')+'>'+esc(k)+'</option>').join('');
+ const details=group?'<div class="txc-info">Taksit planı değişirse etkilenen tüm ekstreler kaydetmeden önce karşılaştırılır. Ödenmiş ekstrelerde tutar değişikliği engellenir.</div>':'';
+ const specific=isTransfer?'<div><label>Kaynak hesap</label><select id="txeFrom">'+fp590SelectOptions(t.from)+'</select></div><div><label>Hedef hesap</label><select id="txeTo">'+fp590SelectOptions(t.to)+'</select></div>':'<div><label>Hesap / Kart</label><select id="txeAccount">'+options+'</select></div>';
+ const base=fp590Field('txeDesc','Açıklama',t.description||'')+fp590Field('txeAmount',group?'Toplam alışveriş tutarı (TL)':'İşlem tutarı (TL)',amount,'number','min="0.01" step="0.01" inputmode="decimal"')+specific;
+ const groupPart=group?fp590Field('txePurchase','Alışveriş tarihi',t.purchaseDate||g.date,'date')+fp590Field('txeFirst','İlk taksit tarihi',first.date,'date')+fp590Field('txeCount','Taksit sayısı',g.count,'number','min="2" max="60" step="1"')+'<div class="txc-full"><details class="txc-info"><summary>Eski taksitlerin ödeme işareti (gelişmiş)</summary>'+fp590Field('txePaid','Ödenmiş olarak işaretli taksit adedi',g.paid===null?'':g.paid,'number','min="0" max="60" step="1" placeholder="Boş: Kart Öde ile takip"')+'<div class="txc-note">Normalde boş bırak. Kart Öde kaydın varsa aynı ödemeyi tekrar saymamak için bu alanın değişikliği engellenebilir.</div></details></div>':fp590Field('txeDate','İşlem tarihi',t.date,'date');
+ const cats=(!isTransfer&&t.type==='expense')?'<div><label>Kategori</label><select id="txeGroup" onchange="fp590Subcategories()">'+catOptions+'</select></div><div><label>Alt kategori</label><select id="txeCat"></select></div>':'';
+ const el=document.getElementById('txcEditor');if(!el)return;
+ el.innerHTML='<div class="txc-detail-view"><button class="txc-back" type="button" onclick="fp590CancelEdit()">‹ Vazgeç / geri dön</button><div class="txc-heading"><div><h2>'+(group?'Taksit düzenle':'İşlem düzenle')+'</h2><p class="muted">'+esc(bankTxAccountName(t.accountId)||'İşlem')+'</p></div><span style="font-size:24px">✎</span></div>'+details+'<div class="txc-editor-grid">'+base+groupPart+cats+'</div><div class="txc-info">Ödeme işaretleri ve mevcut banka hareketleri değiştirilmez. Ekstre tutarlarına etkisi sonraki ekranda gösterilir.</div><div class="txc-actionbar"><button type="button" class="txc-button-secondary" onclick="fp590CancelEdit()">Vazgeç</button><button type="button" onclick="fp590PreviewEdit()">Değişiklikleri incele ›</button></div></div>';
+ if(cats){fp590Subcategories();const elCat=document.getElementById('txeCat');if(elCat)elCat.value=t.categorySubcategory||t.category||''}
+ fp590ShowScreen('edit');
+}
+function fp590Subcategories(){const g=document.getElementById('txeGroup')?.value,el=document.getElementById('txeCat');if(el)el.innerHTML=(CATS[g]||[]).map(s=>'<option value="'+esc(s)+'">'+esc(s)+'</option>').join('')}
+function fp590CancelEdit(){fp590State.preview=null;fp590State.proposal=null;fp590ShowScreen(fp590State.source==='detail'?'detail':'base');if(fp590State.source==='detail')fp590RenderDetail();else fp590Render()}
+function fp590ProposedEdit(){
+ const id=fp590State.editId,g=fp590GroupedForId(id);if(!g)throw Error('İşlem bulunamadı.');
+ const t=g.tx,desc=val('txeDesc').trim(),amount=Number(val('txeAmount'));
+ if(!desc)throw Error('Açıklama gerekli.');if(!Number.isFinite(amount)||amount<=0||amount>100000000000)throw Error('Geçerli tutar girin.');
+ const a=val('txeAccount'),old=data.transactions,group=g.kind==='installment';let fresh;
+ if(group){
+  const count=Number(val('txeCount')),first=val('txeFirst'),purchase=val('txePurchase');
+  if(!Number.isInteger(count)||count<2||count>60)throw Error('Taksit sayısı 2–60 arasında olmalı.');
+  if(!parseFinpalDate(first)||!parseFinpalDate(purchase))throw Error('Geçerli alışveriş ve ilk taksit tarihi girin.');
+  if(!data.accounts.some(x=>String(x.id)===String(a)&&x.type==='credit'))throw Error('Taksitli alışveriş için kredi kartı seçin.');
+  const explicit=g.rows.find(x=>x.installmentPaidCount!==undefined),oldPaid=explicit?Number(explicit.installmentPaidCount)||0:null;
+  const paidRaw=val('txePaid').trim();
+  const paid=paidRaw===''?null:Number(paidRaw);
+  if(paid!==null&&(!Number.isInteger(paid)||paid<0||paid>count))throw Error('Ödenmiş taksit sayısı 0 ile taksit sayısı arasında olmalı.');
+  if(paid!==oldPaid){
+   const tracking=fpCardTrackingStart(t.accountId,data.accounts.find(a=>String(a.id)===String(t.accountId))).date;
+   const payments=data.transactions.some(x=>x.type==='transfer'&&String(x.to)===String(t.accountId)&&(!tracking||String(x.date)>=tracking));
+   if(payments)throw Error('Bu kartta Kart Öde kayıtları var. Ödenmiş taksit sayısı ile aynı ödeme iki kez düşülebilir. Önce ödeme kayıtları uzlaştırılmalı.');
+  }
+  const amountCents=fp590Cents(amount),oldCents=g.rows.reduce((sum,x)=>sum+fp590Cents(x.amount),0);
+  const originalFirst=g.rows[0].date;
+  const samePlan=g.rows.length===count&&count===g.count&&amountCents===oldCents&&first===originalFirst;
+  const monthly=Math.floor(amountCents/count),last=amountCents-monthly*(count-1);
+  const meta={description:desc,accountId:a,purchaseDate:purchase,categoryGroup:val('txeGroup')||t.categoryGroup,categorySubcategory:val('txeCat')||t.categorySubcategory};
+  if(meta.categorySubcategory)meta.category=meta.categorySubcategory;
+  const newRows=[];
+  for(let i=0;i<count;i++){
+   const existing=g.rows[i]||g.rows[g.rows.length-1];
+   const next={...existing,...meta,id:g.rows[i]?.id||uid(),date:samePlan?g.rows[i].date:addMonthsDate(first,i),targetStatementMonth:samePlan?g.rows[i].targetStatementMonth:addMonthsDate(first,i).slice(0,7),amount:samePlan?g.rows[i].amount:(i===count-1?last:monthly)/100,installmentCount:count,installmentNo:i+1,installmentTotal:amountCents/100,installmentAmount:monthly/100,installmentGroup:t.installmentGroup};
+   if(paid===null)delete next.installmentPaidCount;
+   else next.installmentPaidCount=paid;
+   newRows.push(next);
+  }
+  const oldIds=new Set(g.rows.map(x=>String(x.id)));
+  fresh=old.filter(x=>!oldIds.has(String(x.id))).concat(newRows);
+ }else{
+  const date=val('txeDate');if(!parseFinpalDate(date))throw Error('Geçerli tarih girin.');
+  const next={...t,description:desc,amount,date};
+  if(t.type==='transfer'){
+   next.from=val('txeFrom');next.to=val('txeTo');
+   if(!next.from||!next.to||next.from===next.to)throw Error('İki farklı hesap seçin.');
+   if(!data.accounts.some(a=>String(a.id)===String(next.from))||!data.accounts.some(a=>String(a.id)===String(next.to)))throw Error('Geçerli hesapları seçin.');
+  }else{
+   next.accountId=a;
+   if(!data.accounts.some(x=>String(x.id)===String(a)))throw Error('Geçerli bir hesap seçin.');
+   if(t.type==='expense'){next.categoryGroup=val('txeGroup')||t.categoryGroup;next.categorySubcategory=val('txeCat')||t.categorySubcategory;next.category=next.categorySubcategory||next.category}
+  }
+  fresh=old.map(x=>String(x.id)===String(t.id)?next:x);
+ }
+ return {transactions:fresh,label:group?'Taksitli alışverişi düzenle':'İşlemi düzenle',group,oldGroup:g};
+}
+function fp590PreviewEdit(){try{fp590BuildPreview(fp590ProposedEdit())}catch(e){alert(e.message||'Değişiklik kontrol edilemedi.')}}
+function fp590StartDelete(encoded){
+ const id=fp590Unarg(encoded),g=fp590GroupedForId(id);if(!g)return alert('İşlem bulunamadı.');
+ const ids=new Set(g.kind==='installment'?g.rows.map(t=>String(t.id)):[String(g.tx.id)]);
+ const next=data.transactions.filter(x=>!ids.has(String(x.id)));
+ fp590State.source=fp590State.screen==='detail'?'detail':'base';fp590State.editId=String(g.tx.id);
+ fp590BuildPreview({transactions:next,label:g.kind==='installment'?'Tüm taksitli alışverişi sil':'İşlemi sil',group:g.kind==='installment',deleting:true,oldGroup:g});
+}
+function fp590Snapshots(transactions){
+ const out=new Map();for(const a of fp590Cards())out.set(String(a.id),fp590StatementSnapshot(a,transactions).buckets);return out;
+}
+function fp590ChangedFinancialRecords(proposal){
+ const prior=new Map(data.transactions.map(t=>[String(t.id),t]));
+ const after=new Map(proposal.transactions.map(t=>[String(t.id),t]));
+ let protectedRecord=false;
+ for(const id of new Set([...prior.keys(),...after.keys()])){
+  const b=prior.get(id),n=after.get(id);
+  const signature=t=>t?JSON.stringify([t.type,t.amount,t.date,t.accountId,t.from,t.to,t.installmentGroup,t.installmentNo,t.installmentCount]):'';
+  if(signature(b)===signature(n))continue;
+  for(const t of [b,n]){
+   if(!t)continue;
+   const accountId=t.type==='transfer'?t.to:t.accountId;
+   const acc=fp590Card(accountId);if(!acc)continue;
+   const tracking=fpCardTrackingStart(acc.id,acc).date;
+   if(t.type==='expense'){
+    const cut=statementCutForDate(t.date,acc);
+    if((tracking&&t.date<tracking)||(cut&&cut<=statementWindow(acc).last))protectedRecord=true;
+   }else if(t.type==='transfer'&&String(t.to)===String(acc.id)){
+    const cut=statementCutForDate(t.date,acc);
+    if((tracking&&t.date<tracking)||(cut&&cut<=statementWindow(acc).last))protectedRecord=true;
+   }
+  }
+ }
+ return protectedRecord;
+}
+function fp590LineFingerprint(bucket){
+ const rows=bucket?.rows||[];
+ return rows.map(x=>[String(x.row.id),Number(x.row.installmentNo)||0,String(x.row.date),x.cents].join('|')).sort().join('~');
+}
+function fp590BuildPreview(proposal){
+ const before=fp590Snapshots(data.transactions),after=fp590Snapshots(proposal.transactions),changes=[];
+ let protectedPeriod=false;let groupWasPaid=false;
+ for(const a of fp590Cards()){
+  const old=before.get(String(a.id))||new Map(),next=after.get(String(a.id))||new Map(),keys=new Set([...old.keys(),...next.keys()]);
+  const last=statementWindow(a).last;
+  for(const ym of [...keys].sort()){
+   const b=old.get(ym)||{single:0,installment:0,payment:0,net:0},n=next.get(ym)||{single:0,installment:0,payment:0,net:0};
+   if(b.single===n.single&&b.installment===n.installment&&b.payment===n.payment&&b.net===n.net&&fp590LineFingerprint(b)===fp590LineFingerprint(n))continue;
+   const cut=fp590CutForMonth(a,ym);
+   if(cut&&cut<=last)protectedPeriod=true;
+   changes.push({card:a.name||'Kart',ym,oldGross:b.single+b.installment,newGross:n.single+n.installment,oldNet:b.net,newNet:n.net,closed:cut&&cut<=last});
+  }
+ }
+ if(proposal.group&&proposal.oldGroup?.paid>0){
+  // Paid count may be zero even if 'paid' was not explicitly set. Never assume paid from elapsed time.
+  const x=proposal.oldGroup;
+  const changedRows=proposal.deleting||x.rows.some((r,i)=>{
+   const newRows=proposal.transactions.filter(t=>t.installmentGroup===r.installmentGroup).sort((a,b)=>Number(a.installmentNo)-Number(b.installmentNo));
+   const y=newRows[i];return !y||String(y.date)!==String(r.date)||Number(y.amount)!==Number(r.amount)||String(y.accountId)!==String(r.accountId);
+  });
+  if(changedRows)groupWasPaid=true;
+ }
+ // Yalnızca kayıtlı kesilmiş ekstreyi etkileyen finansal değişiklikleri engelle.
+ const protectedRecord=fp590ChangedFinancialRecords(proposal);
+ const blocked=protectedPeriod||groupWasPaid||protectedRecord;
+ const el=document.getElementById('txcPreview');if(!el)return;
+ fp590State.proposal=proposal;fp590State.preview={changes,blocked,protectedPeriod,groupWasPaid,protectedRecord};
+ const rows=changes.map(c=>'<tr><td>'+esc(c.card)+'<div class="txc-mini">'+esc(monthLabelFP(c.ym))+(c.closed?' · Kesilmiş':'')+'</div></td><td>'+fp590Currency(c.oldGross)+'<div class="txc-mini">Kalan '+fp590Currency(c.oldNet)+'</div></td><td class="txc-changed">'+fp590Currency(c.newGross)+'<div class="txc-mini">Kalan '+fp590Currency(c.newNet)+'</div></td></tr>').join('');
+ el.innerHTML='<div class="txc-detail-view"><button type="button" class="txc-back" onclick="fp590BackPreview()">‹ Geri dön</button><h2>Değişiklik önizlemesi</h2><p class="txc-note">'+esc(proposal.label)+' · Kaydetmeden önce etkilenen tüm ekstreler</p>'+(changes.length?'<div class="txc-scroll"><table class="txc-changes"><thead><tr><th>Ekstre</th><th>Önce</th><th>Sonra</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<div class="txc-info">Kredi kartı ekstre tutarlarında değişiklik yok. Düzenleme yalnızca işlem bilgilerini etkiliyor olabilir.</div>')+(blocked?'<div class="txc-danger-note"><b>Değişiklik durduruldu.</b> '+(protectedPeriod?'Kesilmiş bir ekstrenin borç hesabı değişiyor. ':'')+(groupWasPaid?'Ödenmiş olarak işaretli taksitler etkileniyor. ':'')+(protectedRecord?'Önceki veya ödenmiş dönemlerin işlem geçmişi değişiyor. ':'')+'Mevcut ödemeleri veya geçmiş kayıtları otomatik düzeltmeyeceğiz. Önce kayıt uzlaştırması gerekir.</div>':'<div class="txc-info">Tutarları kontrol et. Kaydetmeden önce hiçbir kayıt değiştirilmedi.</div>')+'<div class="txc-actionbar"><button type="button" class="txc-button-secondary" onclick="fp590BackPreview()">Düzenlemeye dön</button>'+(blocked?'<button type="button" disabled class="txc-button-secondary">Kaydetme kilitli</button>':'<button type="button" '+(proposal.deleting?'class="txc-button-danger"':'')+' onclick="fp590Commit()">'+(proposal.deleting?'Silme işlemini onayla':'Değişiklikleri kaydet')+'</button>')+'</div></div>';
+ fp590ShowScreen('preview');
+}
+function fp590BackPreview(){if(fp590State.proposal?.deleting){fp590ShowScreen(fp590State.source==='detail'?'detail':'base');if(fp590State.source==='detail')fp590RenderDetail();else fp590Render()}else fp590ShowScreen('edit')}
+function fp590Commit(){
+ const proposal=fp590State.proposal;if(!proposal||fp590State.preview?.blocked)return;
+ // Her kaydetmede taze veriyle yeniden karşılaştır; önizleme eskiyse kaydetme.
+ const current=JSON.stringify(data.transactions),proposed=JSON.stringify(proposal.transactions);
+ if(!Array.isArray(proposal.transactions)||proposal.transactions.some(t=>!t.id))return alert('Geçersiz işlem verisi. Kaydetme iptal edildi.');
+ try{
+  const nextData={...data,transactions:proposal.transactions};
+  localStorage.setItem(KEY,JSON.stringify(nextData));
+  const saved=JSON.parse(localStorage.getItem(KEY)||'{}');
+  if(JSON.stringify(saved.transactions)!==proposed)throw Error('Depolanan işlemler doğrulanamadı.');
+  data.transactions=proposal.transactions;
+  fp590State.proposal=null;fp590State.preview=null;
+  const returnDetail=fp590State.source==='detail'&&!proposal.deleting;
+  fp590State.screen=returnDetail?'detail':'base';fp590State.tab=returnDetail?'statements':'transactions';fp590State.expanded='';
+  render();if(returnDetail)fp590RenderDetail();window.scrollTo(0,0);
+  alert('İşlem kaydedildi. Ekstre ve takvim tutarları yeniden hesaplandı.');
+ }catch(e){console.error('FinPal 5.9.0 kayıt hatası',e);alert('Kaydetme başarısız: '+(e?.message||e));}
+}
