@@ -2153,7 +2153,7 @@ function finpalAudit54(){return {ok:true,issues:[],version:APP_VERSION}}
 window.finpalAudit54=finpalAudit54;
 
 
-/* FinPal 5.9.0 — İşlem Merkezi. Veriler salt okunur; açık onay dışında kayıt değiştirilmez. */
+/* FinPal 5.9.1 — İşlem Merkezi. Veriler salt okunur; açık onay dışında kayıt değiştirilmez. */
 
 function fp590Cards(){return (data.accounts||[]).filter(a=>a.type==='credit')}
 function fp590Card(id){return fp590Cards().find(a=>String(a.id)===String(id))}
@@ -2425,9 +2425,27 @@ function fp590LineFingerprint(bucket){
  const rows=bucket?.rows||[];
  return rows.map(x=>[String(x.row.id),Number(x.row.installmentNo)||0,String(x.row.date),x.cents].join('|')).sort().join('~');
 }
+function fp591ChangedCardPayments(proposal){
+ const before=new Map(data.transactions.map(t=>[String(t.id),t]));
+ const after=new Map(proposal.transactions.map(t=>[String(t.id),t]));
+ for(const id of new Set([...before.keys(),...after.keys()])){
+  const old=before.get(id),next=after.get(id);
+  if(!(old?.type==='transfer'||next?.type==='transfer'))continue;
+  if(JSON.stringify(old)===JSON.stringify(next))continue;
+  if([old,next].some(t=>t&&t.type==='transfer'&&fp590Card(t.to)))return true;
+ }
+ return false;
+}
+function fp591ApproveHistorical(checked){
+ const review=fp590State.preview;
+ if(!review||!review.requiresHistoricalConsent||review.hardBlocked)return;
+ review.historicalConsent=checked===true;
+ const button=document.getElementById('txcHistoricalSave');
+ if(button)button.disabled=!review.historicalConsent;
+}
 function fp590BuildPreview(proposal){
  const before=fp590Snapshots(data.transactions),after=fp590Snapshots(proposal.transactions),changes=[];
- let protectedPeriod=false;let groupWasPaid=false;
+ let protectedPeriod=false,groupWasPaid=false;
  for(const a of fp590Cards()){
   const old=before.get(String(a.id))||new Map(),next=after.get(String(a.id))||new Map(),keys=new Set([...old.keys(),...next.keys()]);
   const last=statementWindow(a).last;
@@ -2440,26 +2458,48 @@ function fp590BuildPreview(proposal){
   }
  }
  if(proposal.group&&proposal.oldGroup?.paid>0){
-  // Paid count may be zero even if 'paid' was not explicitly set. Never assume paid from elapsed time.
   const x=proposal.oldGroup;
-  const changedRows=proposal.deleting||x.rows.some((r,i)=>{
-   const newRows=proposal.transactions.filter(t=>t.installmentGroup===r.installmentGroup).sort((a,b)=>Number(a.installmentNo)-Number(b.installmentNo));
-   const y=newRows[i];return !y||String(y.date)!==String(r.date)||Number(y.amount)!==Number(r.amount)||String(y.accountId)!==String(r.accountId);
+  const paidRows=x.rows.filter(r=>Number(r.installmentNo||0)<=x.paid);
+  const updated=proposal.transactions.filter(t=>String(t.installmentGroup)===String(x.key));
+  // Gelecekteki taksitlerin düzenlenmesi, geçmişte ödenmiş olanlar korunuyorsa engellenmez.
+  const paidAffected=paidRows.some(r=>{
+   const y=updated.find(t=>Number(t.installmentNo)===Number(r.installmentNo));
+   return !y||String(y.date)!==String(r.date)||fp590Cents(y.amount)!==fp590Cents(r.amount)||String(y.accountId)!==String(r.accountId);
   });
-  if(changedRows)groupWasPaid=true;
+  if(paidAffected)groupWasPaid=true;
  }
- // Yalnızca kayıtlı kesilmiş ekstreyi etkileyen finansal değişiklikleri engelle.
  const protectedRecord=fp590ChangedFinancialRecords(proposal);
- const blocked=protectedPeriod||groupWasPaid||protectedRecord;
+ const changedCardPayment=fp591ChangedCardPayments(proposal);
+ const requiresHistoricalConsent=protectedPeriod||protectedRecord;
+ // Açıkça ödenmiş işaretli bir taksit veya kart ödemesinin kendisi asla bu yoldan değiştirilmez.
+ const hardBlocked=groupWasPaid||changedCardPayment;
  const el=document.getElementById('txcPreview');if(!el)return;
- fp590State.proposal=proposal;fp590State.preview={changes,blocked,protectedPeriod,groupWasPaid,protectedRecord};
- const rows=changes.map(c=>'<tr><td>'+esc(c.card)+'<div class="txc-mini">'+esc(monthLabelFP(c.ym))+(c.closed?' · Kesilmiş':'')+'</div></td><td>'+fp590Currency(c.oldGross)+'<div class="txc-mini">Kalan '+fp590Currency(c.oldNet)+'</div></td><td class="txc-changed">'+fp590Currency(c.newGross)+'<div class="txc-mini">Kalan '+fp590Currency(c.newNet)+'</div></td></tr>').join('');
- el.innerHTML='<div class="txc-detail-view"><button type="button" class="txc-back" onclick="fp590BackPreview()">‹ Geri dön</button><h2>Değişiklik önizlemesi</h2><p class="txc-note">'+esc(proposal.label)+' · Kaydetmeden önce etkilenen tüm ekstreler</p>'+(changes.length?'<div class="txc-scroll"><table class="txc-changes"><thead><tr><th>Ekstre</th><th>Önce</th><th>Sonra</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<div class="txc-info">Kredi kartı ekstre tutarlarında değişiklik yok. Düzenleme yalnızca işlem bilgilerini etkiliyor olabilir.</div>')+(blocked?'<div class="txc-danger-note"><b>Değişiklik durduruldu.</b> '+(protectedPeriod?'Kesilmiş bir ekstrenin borç hesabı değişiyor. ':'')+(groupWasPaid?'Ödenmiş olarak işaretli taksitler etkileniyor. ':'')+(protectedRecord?'Önceki veya ödenmiş dönemlerin işlem geçmişi değişiyor. ':'')+'Mevcut ödemeleri veya geçmiş kayıtları otomatik düzeltmeyeceğiz. Önce kayıt uzlaştırması gerekir.</div>':'<div class="txc-info">Tutarları kontrol et. Kaydetmeden önce hiçbir kayıt değiştirilmedi.</div>')+'<div class="txc-actionbar"><button type="button" class="txc-button-secondary" onclick="fp590BackPreview()">Düzenlemeye dön</button>'+(blocked?'<button type="button" disabled class="txc-button-secondary">Kaydetme kilitli</button>':'<button type="button" '+(proposal.deleting?'class="txc-button-danger"':'')+' onclick="fp590Commit()">'+(proposal.deleting?'Silme işlemini onayla':'Değişiklikleri kaydet')+'</button>')+'</div></div>';
+ fp590State.proposal=proposal;
+ fp590State.preview={changes,blocked:hardBlocked||requiresHistoricalConsent,hardBlocked,protectedPeriod,groupWasPaid,protectedRecord,changedCardPayment,requiresHistoricalConsent,historicalConsent:false,basis:JSON.stringify(data.transactions),accountsBasis:JSON.stringify(data.accounts)};
+ const rows=changes.map(c=>'<tr><td>'+esc(c.card)+'<div class="txc-mini">'+esc(monthLabelFP(c.ym))+(c.closed?' · Kesilmiş':'')+'</div></td><td>'+fp590Currency(c.oldGross)+'<div class="txc-mini">Kalan '+fp590Currency(c.oldNet)+'</div></td><td class="'+(c.oldGross!==c.newGross||c.oldNet!==c.newNet?'txc-changed':'')+'">'+fp590Currency(c.newGross)+'<div class="txc-mini">Kalan '+fp590Currency(c.newNet)+'</div></td></tr>').join('');
+ let note,actions;
+ if(hardBlocked){
+  note='<div class="txc-danger-note"><b>Bu işlem doğrudan kaydedilemez.</b> '+(groupWasPaid?'Ödenmiş olarak işaretlenmiş taksitler değişiyor. ':'')+(changedCardPayment?'Kayıtlı kart ödemesi değiştirilmek isteniyor. ':'')+'Ödeme ve taksit geçmişini uzlaştırmadan düzenleme yapılamaz.</div>';
+  actions='<button type="button" disabled class="txc-button-secondary">Kaydetme kilitli</button>';
+ }else if(requiresHistoricalConsent){
+  note='<div class="txc-danger-note"><b>Kesilmiş ekstre düzeltmesi.</b> '+(protectedPeriod?'En az bir kesilmiş ekstrenin tutarı değişiyor. ':'')+'Bu gerçek bir geçmiş kayıt düzeltmesidir. Kart Öde kayıtları silinmez veya değiştirilmez; fakat dönem borçları ve ödemelerin dönemlere dağılımı yeniden hesaplanabilir. Bankadaki gerçek ekstrelerle karşılaştırmadan onaylamayın.</div>'+
+   '<label class="txc-history-consent"><input id="txcHistoricalConsent" type="checkbox" onchange="fp591ApproveHistorical(this.checked)"><span><b>Geçmiş ekstre tutarlarını da düzeltmek istiyorum.</b><br>Önce/sonra tutarlarını gördüm ve kayıtlı ödemeleri ayrıca kontrol edeceğim.</span></label>';
+  actions='<button type="button" id="txcHistoricalSave" disabled onclick="fp590Commit()">Geçmiş düzeltmesini onayla ve kaydet</button>';
+ }else{
+  note='<div class="txc-info">Tutarları kontrol et. Kaydetmeden önce hiçbir finansal kayıt değiştirilmedi.</div>';
+  actions='<button type="button" '+(proposal.deleting?'class="txc-button-danger"':'')+' onclick="fp590Commit()">'+(proposal.deleting?'Silme işlemini onayla':'Değişiklikleri kaydet')+'</button>';
+ }
+ el.innerHTML='<div class="txc-detail-view"><button type="button" class="txc-back" onclick="fp590BackPreview()">‹ Geri dön</button><h2>Değişiklik önizlemesi</h2><p class="txc-note">'+esc(proposal.label)+' · Kaydetmeden önce etkilenen tüm ekstreler</p>'+(changes.length?'<div class="txc-scroll"><table class="txc-changes"><thead><tr><th>Ekstre</th><th>Önce</th><th>Sonra</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<div class="txc-info">Kredi kartı ekstre tutarlarında değişiklik yok. Düzenleme yalnızca işlem bilgilerini etkiliyor olabilir.</div>')+note+'<div class="txc-actionbar"><button type="button" class="txc-button-secondary" onclick="fp590BackPreview()">Düzenlemeye dön</button>'+actions+'</div></div>';
  fp590ShowScreen('preview');
 }
 function fp590BackPreview(){if(fp590State.proposal?.deleting){fp590ShowScreen(fp590State.source==='detail'?'detail':'base');if(fp590State.source==='detail')fp590RenderDetail();else fp590Render()}else fp590ShowScreen('edit')}
 function fp590Commit(){
- const proposal=fp590State.proposal;if(!proposal||fp590State.preview?.blocked)return;
+ const proposal=fp590State.proposal,review=fp590State.preview;
+ if(!proposal||!review||review.hardBlocked||review.requiresHistoricalConsent&&!review.historicalConsent)return;
+ if(review.basis!==JSON.stringify(data.transactions)||review.accountsBasis!==JSON.stringify(data.accounts)){
+  alert('Kayıtlar veya kart ayarları önizlemeden sonra değişmiş. Güvenlik için yeniden önizleme oluşturun.');return;
+ }
+ if(review.requiresHistoricalConsent&&!confirm('Kesilmiş ekstrelerin tutarları değişecek. Kayıtlı Kart Öde işlemleri korunacak ancak dönem borçları yeniden hesaplanabilir. Banka ekstreleriyle karşılaştırmayı kabul ediyor musun?'))return;
  // Her kaydetmede taze veriyle yeniden karşılaştır; önizleme eskiyse kaydetme.
  const current=JSON.stringify(data.transactions),proposed=JSON.stringify(proposal.transactions);
  if(!Array.isArray(proposal.transactions)||proposal.transactions.some(t=>!t.id))return alert('Geçersiz işlem verisi. Kaydetme iptal edildi.');
@@ -2474,5 +2514,5 @@ function fp590Commit(){
   fp590State.screen=returnDetail?'detail':'base';fp590State.tab=returnDetail?'statements':'transactions';fp590State.expanded='';
   render();if(returnDetail)fp590RenderDetail();window.scrollTo(0,0);
   alert('İşlem kaydedildi. Ekstre ve takvim tutarları yeniden hesaplandı.');
- }catch(e){console.error('FinPal 5.9.0 kayıt hatası',e);alert('Kaydetme başarısız: '+(e?.message||e));}
+ }catch(e){console.error('FinPal 5.9.1 kayıt hatası',e);alert('Kaydetme başarısız: '+(e?.message||e));}
 }
